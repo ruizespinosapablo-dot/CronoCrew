@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { USERS } from '../lib/data';
 import { supabase } from '../lib/supabase';
+import { useToast } from './ToastContext';
 
 const AppContext = createContext(null);
 
@@ -82,6 +83,7 @@ const toPermRow = p => ({
 });
 
 export function AppProvider({ children }) {
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -146,7 +148,7 @@ export function AppProvider({ children }) {
   const sb = (promise) => promise.then(({ error }) => {
     if (error) {
       console.error('[Supabase]', error.message, error);
-      alert('⚠️ Error al guardar el cambio. Comprueba tu conexión y vuelve a intentarlo.\n\nDetalle: ' + error.message);
+      showToast('Error al guardar el cambio: ' + error.message, 'error');
     }
   });
 
@@ -251,6 +253,13 @@ export function AppProvider({ children }) {
     });
   }, []);
 
+  const deletePaidById = useCallback((dbId) => {
+    setPaid(prev => {
+      if (dbId) sb(supabase.from('paid').delete().eq('id', dbId));
+      return prev.filter(p => p._dbId !== dbId);
+    });
+  }, []);
+
   const addPaid = useCallback((entry) => {
     const today = new Date().toISOString().slice(0, 10);
     const entryWithDate = { ...entry, date: entry.date || today };
@@ -298,7 +307,8 @@ export function AppProvider({ children }) {
           const d = new Date(req.start + 'T12:00:00');
           while (d <= endD) {
             const dateStr = d.toISOString().slice(0, 10);
-            if (!prevRecs.some(r => r.eid === req.eid && r.date === dateStr)) {
+            const dow = d.getDay();
+            if (!prevRecs.some(r => r.eid === req.eid && r.date === dateStr) && dow !== 0 && dow !== 6) {
               toAdd.push({
                 id: crypto.randomUUID(),
                 eid: req.eid, date: dateStr,
@@ -347,7 +357,7 @@ export function AppProvider({ children }) {
       currentUser, login, logout,
       emps, updateEmp, addEmp,
       recs, updateRec, addRec, upsertRec, deleteRec,
-      paid, upsertPaid, removePaid, addPaid,
+      paid, upsertPaid, removePaid, addPaid, deletePaidById,
       adminPerms, addAdminPerm,
       festivos, addFestivo, removeFestivo,
       empRequests, addEmpRequest, updateEmpRequest,

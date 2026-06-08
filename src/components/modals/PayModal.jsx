@@ -13,6 +13,10 @@ export default function PayModal({ empId: initialEmpId, onClose }) {
 
   const emp = emps.find(e => e.id === eid);
   const s = emp ? calcPeriod(eid, emps, recs) : null;
+  const empPaid = paid.filter(p => p.eid === eid);
+  const pOrd = empPaid.reduce((a, p) => a + (p.ordMin || 0), 0);
+  const pExt = empPaid.reduce((a, p) => a + (p.extMin || 0), 0);
+  const realBalance = s ? Math.round(s.total - (pOrd + pExt * 1.5)) : 0;
 
   const handleSave = () => {
     const today = new Date().toISOString().slice(0, 10);
@@ -41,7 +45,7 @@ export default function PayModal({ empId: initialEmpId, onClose }) {
             <span style={{ color: 'var(--teal)' }}>{fmt(Math.round(parseFloat(ord) * 60))} horas ordinarias</span>
             {parseFloat(ext) > 0 && <span style={{ color: 'var(--purple)' }}> + {ext}min extra</span>}<br />
             <span style={{ color: 'var(--text3)', fontSize: 12, marginTop: 5, display: 'block' }}>
-              Saldo actual: <b style={{ color: s.total >= 0 ? 'var(--teal)' : 'var(--coral)' }}>{fmt(Math.round(s.total))}</b>
+              Saldo actual: <b style={{ color: realBalance >= 0 ? 'var(--teal)' : 'var(--coral)' }}>{fmt(realBalance)}</b>
             </span>
           </div>
         )}

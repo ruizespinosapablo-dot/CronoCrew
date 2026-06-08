@@ -1,17 +1,31 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { calcPeriod, fmt } from '../../lib/utils';
 
-const MONTH_OPTIONS = [
-  { value: '2025-11', label: 'Noviembre 2025' },
-  { value: '2025-12', label: 'Diciembre 2025' },
-  { value: '2026-01', label: 'Enero 2026' },
-  { value: 'all', label: 'Todo el tiempo' },
-];
+function buildMonthOptions(cStart) {
+  const options = [];
+  const start = cStart ? new Date(cStart + 'T12:00:00') : new Date();
+  const now = new Date();
+  const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+  while (cur <= now) {
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, '0');
+    const label = cur.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    options.push({ value: `${y}-${m}`, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+  options.push({ value: 'all', label: 'Todo el tiempo' });
+  return options;
+}
 
 export default function Hours({ emp }) {
   const { recs, paid, emps } = useApp();
-  const [month, setMonth] = useState('2025-11');
+  const monthOptions = useMemo(() => buildMonthOptions(emp.cStart), [emp.cStart]);
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const defaultMonth = monthOptions.find(o => o.value === currentMonth)
+    ? currentMonth
+    : monthOptions[monthOptions.length - 2]?.value || 'all';
+  const [month, setMonth] = useState(defaultMonth);
 
   const filterFn = month === 'all' ? null : (r => r.date.startsWith(month));
   const s = calcPeriod(emp.id, emps, recs, filterFn);
@@ -31,7 +45,7 @@ export default function Hours({ emp }) {
       <div className="ph">
         <div><h1>Mis horas</h1><p>Saldo acumulado</p></div>
         <select value={month} onChange={e => setMonth(e.target.value)} style={{ background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--text)', padding: '6px 11px', fontSize: 13, fontFamily: 'var(--fb)', outline: 'none' }}>
-          {MONTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
       <div className="hs">

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
 import { fmtDate } from '../../lib/utils';
 
 const TYPE_CLASS = { 'Vacaciones': 'bp', 'Baja médica': 'bc', 'Permiso médico': 'by', 'Asunto personal': 'bx', 'Maternidad/Paternidad': 'bt', 'Otro': 'bx' };
@@ -7,6 +8,7 @@ const BASE_PERMS = [{ names: 'Laura Fernández', type: 'Vacaciones', start: '202
 
 export default function Permissions() {
   const { emps, adminPerms, addAdminPerm, festivos, addFestivo, removeFestivo } = useApp();
+  const { showToast } = useToast();
   const [vacEmps, setVacEmps] = useState([]);
   const [vacStart, setVacStart] = useState('');
   const [vacEnd, setVacEnd] = useState('');
@@ -20,24 +22,24 @@ export default function Permissions() {
   const [festName, setFestName] = useState('');
 
   const applyVacations = () => {
-    if (!vacEmps.length || !vacStart || !vacEnd) { alert('Selecciona al menos un empleado y las fechas.'); return; }
+    if (!vacEmps.length || !vacStart || !vacEnd) { showToast('Selecciona al menos un empleado y las fechas.', 'warning'); return; }
     const days = Math.round((new Date(vacEnd) - new Date(vacStart)) / 864e5) + 1;
     addAdminPerm({ names: vacEmps.map(id => emps.find(e => e.id === id)?.name).join(', '), type: 'Vacaciones', start: vacStart, end: vacEnd, days, note: vacNote });
     setVacNote('');
-    alert('Vacaciones aplicadas.');
+    showToast('Vacaciones aplicadas.', 'success');
   };
 
   const applyOther = () => {
-    if (!othStart || !othEnd) { alert('Indica las fechas.'); return; }
+    if (!othStart || !othEnd) { showToast('Indica las fechas.', 'warning'); return; }
     const days = Math.round((new Date(othEnd) - new Date(othStart)) / 864e5) + 1;
     const emp = emps.find(e => e.id === othEmp);
     addAdminPerm({ names: emp?.name || othEmp, type: othType, start: othStart, end: othEnd, days, note: othNote });
     setOthNote('');
-    alert('Permiso aplicado.');
+    showToast('Permiso aplicado.', 'success');
   };
 
   const addFest = () => {
-    if (!festDate) { alert('Indica la fecha del festivo.'); return; }
+    if (!festDate) { showToast('Indica la fecha del festivo.', 'warning'); return; }
     addFestivo({ date: festDate, name: festName || 'Festivo' });
     setFestDate('');
     setFestName('');

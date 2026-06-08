@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
 import { fmtDate } from '../../lib/utils';
 
 const TYPE_CLASS = { 'Vacaciones': 'bp', 'Enfermedad': 'bc', 'Asunto personal': 'bx', 'Maternidad/Paternidad': 'bt', 'Otro': 'bx' };
 
 export default function Leave({ emp }) {
   const { currentUser, emps, empRequests, addEmpRequest } = useApp();
+  const { showToast } = useToast();
   const [type, setType] = useState('Vacaciones');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
@@ -14,7 +16,7 @@ export default function Leave({ emp }) {
   const myRequests = empRequests.filter(r => r.eid === currentUser.eid);
 
   const submit = () => {
-    if (!start || !end) { alert('Indica las fechas.'); return; }
+    if (!start || !end) { showToast('Indica las fechas de inicio y fin.', 'warning'); return; }
     const days = Math.round((new Date(end) - new Date(start)) / 864e5) + 1;
     addEmpRequest({
       id: crypto.randomUUID(),
@@ -25,7 +27,7 @@ export default function Leave({ emp }) {
       status: 'pending',
     });
     setStart(''); setEnd(''); setReason('');
-    alert('Solicitud enviada al administrador.');
+    showToast('Solicitud enviada al administrador.', 'success');
   };
 
   return (

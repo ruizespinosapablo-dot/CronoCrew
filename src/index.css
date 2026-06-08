@@ -1,4 +1,6 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.toast-item{animation:toastIn .18s ease;}
 :root{
   --bg:#0e1018;--bg2:#181c26;--bg3:#222636;--bg4:#2c3145;
   --border:rgba(255,255,255,.10);--border2:rgba(255,255,255,.20);--border3:rgba(255,255,255,.30);

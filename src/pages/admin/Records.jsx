@@ -13,6 +13,8 @@ export default function Records() {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [order, setOrder] = useState('desc');
   const [editRecId, setEditRecId] = useState(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
 
   const festivoSet = new Set(festivos.map(f => f.date));
   const absLabels = { baja: '🏥 Baja', vacaciones: '🌴 Vacaciones', festivo: '🎉 Festivo', permiso: '📋 Permiso' };
@@ -30,35 +32,47 @@ export default function Records() {
   const clearFilters = () => {
     setFilterEmp(''); setFilterDept(''); setFilterStatus('');
     setFilterDateFrom(''); setFilterDateTo('');
+    setPage(1);
   };
+
+  // Reset page when any filter changes
+  const handleFilter = (fn) => { fn(); setPage(1); };
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
       <div className="ph"><div><h1>Registro de fichajes</h1><p>Revisión y aprobación</p></div></div>
       <div className="fb">
-        <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterEmp(''); }}>
+        <select value={filterDept} onChange={e => { handleFilter(() => { setFilterDept(e.target.value); setFilterEmp(''); }); }}>
           <option value="">Todos los departamentos</option>
           {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
         </select>
-        <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)}>
+        <select value={filterEmp} onChange={e => handleFilter(() => setFilterEmp(e.target.value))}>
           <option value="">Todos los empleados</option>
           {visibleEmps.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+        <select value={filterStatus} onChange={e => handleFilter(() => setFilterStatus(e.target.value))}>
           <option value="">Todos estados</option>
           <option value="pending">Pendiente</option>
           <option value="approved">Aprobado</option>
         </select>
-        <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} title="Desde" />
-        <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} title="Hasta" />
-        <select value={order} onChange={e => setOrder(e.target.value)}>
+        <input type="date" value={filterDateFrom} onChange={e => handleFilter(() => setFilterDateFrom(e.target.value))} title="Desde" />
+        <input type="date" value={filterDateTo} onChange={e => handleFilter(() => setFilterDateTo(e.target.value))} title="Hasta" />
+        <select value={order} onChange={e => handleFilter(() => setOrder(e.target.value))}>
           <option value="desc">Más reciente primero</option>
           <option value="asc">Más antiguo primero</option>
         </select>
         <button className="btn-sm" onClick={clearFilters}>Limpiar</button>
       </div>
       <div className="tc">
-        <div className="tch"><h3>Jornadas registradas</h3></div>
+        <div className="tch">
+          <h3>Jornadas registradas</h3>
+          <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+            {filtered.length} registros · página {page}/{totalPages}
+          </span>
+        </div>
         <table>
           <thead>
             <tr>
@@ -67,7 +81,7 @@ export default function Records() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(rec => {
+            {paginated.map(rec => {
               const emp = emps.find(e => e.id === rec.eid);
               if (!emp) return null;
               const workedOnFestivo = festivoSet.has(rec.date) && rec.entry && !rec.absence;
@@ -130,6 +144,17 @@ export default function Records() {
             })}
           </tbody>
         </table>
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '1rem', borderTop: '1px solid var(--border)' }}>
+            <button className="btn-sm" onClick={() => setPage(1)} disabled={page === 1}>«</button>
+            <button className="btn-sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>‹ Anterior</button>
+            <span style={{ fontSize: 12, color: 'var(--text2)', minWidth: 90, textAlign: 'center' }}>
+              {page} / {totalPages}
+            </span>
+            <button className="btn-sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Siguiente ›</button>
+            <button className="btn-sm" onClick={() => setPage(totalPages)} disabled={page === totalPages}>»</button>
+          </div>
+        )}
       </div>
       {editRecId && <EditRecordModal recId={editRecId} onClose={() => setEditRecId(null)} />}
     </>

@@ -23,7 +23,7 @@ const SectionHead = ({ color, children }) => (
 );
 
 export default function Reports() {
-  const { emps, recs, paid } = useApp();
+  const { emps, recs, paid, deletePaidById } = useApp();
   const [filterEmp, setFilterEmp] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -148,7 +148,7 @@ export default function Reports() {
                 <SectionHead color="var(--amber)">💰 Extras pagadas</SectionHead>
                 <table>
                   <thead>
-                    <tr><th>Fecha</th><th>Extras pagados</th><th>Ordinarias pagadas</th><th>Nota</th></tr>
+                    <tr><th>Fecha</th><th>Extras pagados</th><th>Ordinarias pagadas</th><th>Nota</th><th></th></tr>
                   </thead>
                   <tbody>
                     {empPaid.slice().sort((a, b) => a.date.localeCompare(b.date)).map((p, i) => (
@@ -157,13 +157,28 @@ export default function Reports() {
                         <td>{p.extMin > 0 ? <span style={{ color: 'var(--amber)', fontWeight: 600 }}>💰 {p.extMin} min</span> : <span style={{ color: 'var(--text3)' }}>—</span>}</td>
                         <td>{p.ordMin > 0 ? <span style={{ color: 'var(--teal)', fontWeight: 600 }}>{fmt(p.ordMin)}</span> : <span style={{ color: 'var(--text3)' }}>—</span>}</td>
                         <td style={{ fontSize: 12, color: 'var(--text3)' }}>{p.note || '—'}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            title="Eliminar pago"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--coral)', padding: '2px 6px', fontSize: 13, opacity: 0.7 }}
+                            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                            onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+                            onClick={() => {
+                              if (window.confirm(`¿Eliminar este pago del ${fmtDate(p.date)}? Esta acción no se puede deshacer.`)) {
+                                deletePaidById(p._dbId);
+                              }
+                            }}
+                          >
+                            <i className="ti ti-trash" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     <tr style={{ background: 'var(--bg3)' }}>
                       <td style={{ fontWeight: 700, fontSize: 12 }}>TOTAL</td>
                       <td style={{ color: 'var(--amber)', fontWeight: 700 }}>{pExt > 0 ? `${pExt} min` : '—'}</td>
                       <td style={{ color: 'var(--teal)', fontWeight: 700 }}>{pOrd > 0 ? fmt(pOrd) : '—'}</td>
-                      <td />
+                      <td /><td />
                     </tr>
                   </tbody>
                 </table>

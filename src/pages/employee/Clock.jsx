@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
 import { calcRec, fmt, fmtDate, getToday, t2m } from '../../lib/utils';
 
 export default function Clock({ emp }) {
   const { recs, upsertRec, festivos } = useApp();
+  const { showToast } = useToast();
   const TODAY = getToday();
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
@@ -79,7 +81,7 @@ export default function Clock({ emp }) {
     else if (method === 'now') t = nowHHMM();
     else {
       t = type === 'in' ? custIn : custOut;
-      if (!t) { alert('Introduce una hora personalizada.'); return; }
+      if (!t) { showToast('Introduce una hora personalizada.', 'warning'); return; }
     }
     const methodLabel = method === 'def' ? 'Hora citada' : method === 'now' ? 'Hora actual' : 'Personalizada';
     const existing = recs.find(r => r.eid === emp.id && r.date === TODAY);
@@ -93,7 +95,7 @@ export default function Clock({ emp }) {
         method: methodLabel, citedIn, citedOut,
       });
     } else {
-      if (!existing) { alert('Debes fichar la entrada antes de registrar la salida.'); return; }
+      if (!existing) { showToast('Debes fichar la entrada antes de registrar la salida.', 'warning'); return; }
       upsertRec({ ...existing, exit: t, brk: parseInt(brkMins) || emp.brk, status: 'pending' });
     }
   };
@@ -119,7 +121,7 @@ export default function Clock({ emp }) {
   };
 
   const saveObs = () => {
-    if (!obs.trim()) { alert('Escribe una observación antes de guardar.'); return; }
+    if (!obs.trim()) { showToast('Escribe una observación antes de guardar.', 'warning'); return; }
     const existing = recs.find(r => r.eid === emp.id && r.date === TODAY);
     upsertRec({
       id: existing?.id || crypto.randomUUID(),
@@ -129,11 +131,11 @@ export default function Clock({ emp }) {
       method: '—', citedIn, citedOut,
     });
     setObs('');
-    alert('Observación guardada.');
+    showToast('Observación guardada.', 'success');
   };
 
   const savePastDay = () => {
-    if (!selectedPast) { alert('Selecciona un día.'); return; }
+    if (!selectedPast) { showToast('Selecciona un día.', 'warning'); return; }
     const isFestivoPast = festivoSet.has(selectedPast);
 
     if (pastType === 'festivo' || (isFestivoPast && pastType === 'festivo-no')) {
@@ -151,7 +153,7 @@ export default function Clock({ emp }) {
         citedIn: emp.start, citedOut: emp.end, libranza: true,
       });
     } else {
-      if (!pastEntry || !pastExit) { alert('Indica entrada y salida.'); return; }
+      if (!pastEntry || !pastExit) { showToast('Indica entrada y salida.', 'warning'); return; }
       upsertRec({
         id: crypto.randomUUID(), eid: emp.id, date: selectedPast,
         entry: pastEntry, exit: pastExit, brk: parseInt(pastBrk) || emp.brk,
@@ -164,10 +166,10 @@ export default function Clock({ emp }) {
   };
 
   const saveExtraDay = () => {
-    if (!extraDate) { alert('Selecciona una fecha.'); return; }
-    if (!extraEntry || !extraExit) { alert('Indica entrada y salida.'); return; }
+    if (!extraDate) { showToast('Selecciona una fecha.', 'warning'); return; }
+    if (!extraEntry || !extraExit) { showToast('Indica entrada y salida.', 'warning'); return; }
     if (recs.some(r => r.eid === emp.id && r.date === extraDate)) {
-      alert('Ya existe un registro para ese día.'); return;
+      showToast('Ya existe un registro para ese día.', 'error'); return;
     }
     const citedMins = Math.round(parseFloat(extraCited) * 60) || 0;
     const brk = parseInt(extraBrk) || 0;
