@@ -7,6 +7,7 @@ import Records from './Records';
 import Requests from './Requests';
 import Permissions from './Permissions';
 import Reports from './Reports';
+import Audit from './Audit';
 
 const PAGES = [
   { id: 'dash', label: 'Panel',       icon: 'ti-layout-dashboard' },
@@ -15,6 +16,7 @@ const PAGES = [
   { id: 'req',  label: 'Solicitudes', icon: 'ti-inbox', badge: true },
   { id: 'perm', label: 'Permisos',    icon: 'ti-calendar-off' },
   { id: 'rep',  label: 'Informes',    icon: 'ti-chart-bar' },
+  { id: 'aud',  label: 'Auditoría',   icon: 'ti-shield-check' },
 ];
 
 export default function AdminLayout() {
@@ -75,6 +77,7 @@ export default function AdminLayout() {
           {page === 'req'  && <Requests />}
           {page === 'perm' && <Permissions />}
           {page === 'rep'  && <Reports />}
+          {page === 'aud'  && <Audit />}
         </div>
       </div>
     </div>

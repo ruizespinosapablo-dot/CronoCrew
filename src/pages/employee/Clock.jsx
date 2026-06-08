@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { calcRec, fmt, fmtDate, getToday, t2m } from '../../lib/utils';
 
 export default function Clock({ emp }) {
-  const { recs, upsertRec, deleteRec, festivos } = useApp();
+  const { recs, upsertRec, festivos } = useApp();
   const TODAY = getToday();
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
@@ -294,7 +294,7 @@ export default function Clock({ emp }) {
               {rec.special && <span className="b ba">⭐ Jornada especial</span>}
               {rec.catUp && <span className="b bp">⬆ Subida categoría</span>}
               {rec.libranza && <span className="b bp">📅 Libranza</span>}
-              <button className="btn-danger" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => { if (window.confirm('¿Eliminar el registro de hoy?')) deleteRec(rec.id); }}>Eliminar</button>
+              <span style={{ fontSize: 11, color: 'var(--text3)' }}>Contacta con administración para corregir errores</span>
             </span>
           )}
         </div>

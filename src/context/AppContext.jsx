@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { USERS } from '../lib/data';
 import { supabase } from '../lib/supabase';
 
@@ -31,6 +31,7 @@ const mapRec = row => ({
   special: row.special || false, paidExtra: row.paid_extra || 0,
   specialNote: row.special_note || null,
   catUp: row.cat_up || false, catUpNote: row.cat_up_note || null,
+  deletedAt: row.deleted_at || null, deletedBy: row.deleted_by || null,
 });
 
 const mapPaid = row => ({
@@ -59,6 +60,7 @@ const toRecRow = r => ({
   special: r.special || false, paid_extra: r.paidExtra || 0,
   special_note: r.specialNote || null,
   cat_up: r.catUp || false, cat_up_note: r.catUpNote || null,
+  deleted_at: r.deletedAt || null, deleted_by: r.deletedBy || null,
 });
 
 const toEmpRow = e => ({
@@ -83,6 +85,7 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const currentUserRef = useRef(null);
   const [emps, setEmps] = useState([]);
   const [recs, setRecs] = useState([]);
   const [paid, setPaid] = useState([]);
@@ -102,7 +105,7 @@ export function AppProvider({ children }) {
         if (empsErr) throw empsErr;
 
         const [recsData, paidData, festivosData, reqsData, permsData] = await Promise.all([
-          supabase.from('recs').select('*').then(({ data, error }) => { if (error) throw error; return data; }),
+          supabase.from('recs').select('*').is('deleted_at', null).then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('paid').select('*').then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('festivos').select('*').order('date').then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('requests').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
@@ -127,13 +130,18 @@ export function AppProvider({ children }) {
   const login = useCallback((username, password) => {
     const user = USERS[username];
     if (user && user.pass === password) {
-      setCurrentUser({ username, role: user.role, eid: user.eid || null });
+      const u = { username, role: user.role, eid: user.eid || null };
+      setCurrentUser(u);
+      currentUserRef.current = u;
       return true;
     }
     return false;
   }, []);
 
-  const logout = useCallback(() => setCurrentUser(null), []);
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    currentUserRef.current = null;
+  }, []);
 
   const sb = (promise) => promise.then(({ error }) => {
     if (error) {
@@ -142,11 +150,31 @@ export function AppProvider({ children }) {
     }
   });
 
-  const updateRec = useCallback((id, changes) => {
+  // Registra cada cambio en rec_audit para cumplir con la normativa de inmutabilidad
+  const logAudit = (recId, action, prevData, newData, reason = null) => {
+    const user = currentUserRef.current;
+    supabase.from('rec_audit').insert({
+      rec_id: recId,
+      action,
+      changed_by: user?.username || 'sistema',
+      changed_at: new Date().toISOString(),
+      prev_data: prevData || null,
+      new_data: newData || null,
+      reason: reason || null,
+    }).then(({ error }) => {
+      if (error) console.error('[Audit]', error.message);
+    });
+  };
+
+  const updateRec = useCallback((id, changes, reason = null) => {
     setRecs(prev => {
+      const original = prev.find(r => r.id === id);
       const updated = prev.map(r => r.id === id ? { ...r, ...changes } : r);
       const rec = updated.find(r => r.id === id);
-      if (rec) sb(supabase.from('recs').upsert(toRecRow(rec), { onConflict: 'id' }));
+      if (rec) {
+        sb(supabase.from('recs').upsert(toRecRow(rec), { onConflict: 'id' }));
+        logAudit(id, 'update', original ? toRecRow(original) : null, toRecRow(rec), reason);
+      }
       return updated;
     });
   }, []);
@@ -154,17 +182,30 @@ export function AppProvider({ children }) {
   const addRec = useCallback((rec) => {
     setRecs(prev => [...prev, rec]);
     sb(supabase.from('recs').insert(toRecRow(rec)));
+    logAudit(rec.id, 'create', null, toRecRow(rec));
   }, []);
 
-  const deleteRec = useCallback((id) => {
-    setRecs(prev => prev.filter(r => r.id !== id));
-    sb(supabase.from('recs').delete().eq('id', id));
+  // Soft delete: nunca borra de la BD, solo marca deleted_at/deleted_by
+  const deleteRec = useCallback((id, reason = null) => {
+    const now = new Date().toISOString();
+    const user = currentUserRef.current?.username || 'sistema';
+    setRecs(prev => {
+      const original = prev.find(r => r.id === id);
+      if (original) logAudit(id, 'delete', toRecRow(original), null, reason);
+      return prev.filter(r => r.id !== id); // lo quitamos de la UI
+    });
+    // En la BD solo se marca como borrado, nunca se elimina
+    sb(supabase.from('recs').update({ deleted_at: now, deleted_by: user }).eq('id', id));
   }, []);
 
   const upsertRec = useCallback((rec) => {
     setRecs(prev => {
-      const idx = prev.findIndex(r => r.id === rec.id);
-      if (idx >= 0) return prev.map(r => r.id === rec.id ? rec : r);
+      const existing = prev.find(r => r.id === rec.id);
+      if (existing) {
+        logAudit(rec.id, 'update', toRecRow(existing), toRecRow(rec));
+        return prev.map(r => r.id === rec.id ? rec : r);
+      }
+      logAudit(rec.id, 'create', null, toRecRow(rec));
       return [...prev, rec];
     });
     sb(supabase.from('recs').upsert(toRecRow(rec), { onConflict: 'id' }));

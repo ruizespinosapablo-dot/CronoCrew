@@ -1,9 +1,50 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabase';
 import { calcRec, fmt, fmtDate, t2m } from '../../lib/utils';
+
+const ACTION_LABEL = { create: '✅ Creado', update: '✏️ Modificado', delete: '🚫 Anulado' };
+const ACTION_COLOR = { create: 'var(--teal)', update: 'var(--amber)', delete: 'var(--coral)' };
+
+const FIELD_LABELS = {
+  entry: 'Entrada', exit: 'Salida', brk: 'Descanso (min)',
+  obs: 'Observación', status: 'Estado', absence: 'Ausencia',
+  libranza: 'Libranza', special: 'Jornada especial', cat_up: 'Subida categoría',
+  cited_in: 'Hora citada entrada', cited_out: 'Hora citada salida',
+};
+
+function AuditDiff({ prev, next }) {
+  if (!prev && !next) return null;
+  const keys = Object.keys(FIELD_LABELS);
+  const diffs = keys.filter(k => {
+    const a = prev?.[k] ?? null, b = next?.[k] ?? null;
+    return String(a) !== String(b);
+  });
+  if (!diffs.length) return <span style={{ color: 'var(--text3)', fontSize: 11 }}>Sin cambios de campos</span>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4 }}>
+      {diffs.map(k => (
+        <div key={k} style={{ fontSize: 11, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ color: 'var(--text3)' }}>{FIELD_LABELS[k]}:</span>
+          {prev && <span style={{ color: 'var(--coral)', textDecoration: 'line-through' }}>{String(prev[k] ?? '—')}</span>}
+          {prev && next && <span style={{ color: 'var(--text3)' }}>→</span>}
+          {next && <span style={{ color: 'var(--teal)' }}>{String(next[k] ?? '—')}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function EditRecordModal({ recId, onClose }) {
   const { recs, emps, updateRec, deleteRec, upsertPaid, removePaid, paid } = useApp();
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(true);
+
+  useEffect(() => {
+    if (!recId || !supabase) return;
+    supabase.from('rec_audit').select('*').eq('rec_id', recId).order('changed_at', { ascending: false })
+      .then(({ data }) => { setAuditLogs(data || []); setAuditLoading(false); });
+  }, [recId]);
   const rec = recs.find(r => r.id === recId);
   const emp = rec ? emps.find(e => e.id === rec.eid) : null;
 
@@ -18,6 +59,8 @@ export default function EditRecordModal({ recId, onClose }) {
   const [specialNote, setSpecialNote] = useState('');
   const [catUp, setCatUp] = useState(false);
   const [catUpNote, setCatUpNote] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [payCheck, setPayCheck] = useState(false);
   const [payExt, setPayExt] = useState(0);
 
@@ -176,8 +219,58 @@ export default function EditRecordModal({ recId, onClose }) {
             </div>
           )}
         </div>
+        {/* Historial de cambios */}
+        <div style={{ borderTop: '1px solid var(--border2)', marginTop: '1rem', paddingTop: '1rem' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '.6rem' }}>
+            🕓 Historial de cambios
+          </div>
+          {auditLoading && <div style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</div>}
+          {!auditLoading && auditLogs.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--text3)', fontStyle: 'italic' }}>Sin cambios registrados todavía.</div>
+          )}
+          {!auditLoading && auditLogs.map(log => (
+            <div key={log.id} style={{ marginBottom: '.6rem', padding: '.5rem .75rem', background: 'var(--bg3)', borderRadius: 8, borderLeft: `3px solid ${ACTION_COLOR[log.action] || 'var(--border2)'}` }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+                <span style={{ fontWeight: 700, fontSize: 12, color: ACTION_COLOR[log.action] }}>{ACTION_LABEL[log.action] || log.action}</span>
+                <span style={{ fontSize: 11, color: 'var(--text3)' }}>{new Date(log.changed_at).toLocaleString('es-ES')}</span>
+                <span style={{ fontSize: 11, color: 'var(--text2)' }}>por <b>{log.changed_by}</b></span>
+              </div>
+              {log.reason && <div style={{ fontSize: 11, color: 'var(--amber)', marginBottom: 2 }}>Motivo: {log.reason}</div>}
+              <AuditDiff prev={log.prev_data} next={log.new_data} />
+            </div>
+          ))}
+        </div>
+
+        {showDeleteConfirm && (
+          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid var(--coral)', borderRadius: 'var(--r)', padding: '1rem', marginBottom: '1rem' }}>
+            <p style={{ fontSize: 13, color: 'var(--coral)', fontWeight: 700, marginBottom: '.5rem' }}>⚠️ Confirmar anulación del registro</p>
+            <p style={{ fontSize: 12, color: 'var(--text2)', marginBottom: '.75rem' }}>
+              El registro no se elimina — queda marcado como anulado con tu nombre, fecha y el motivo. Esto es obligatorio por ley.
+            </p>
+            <div className="fg" style={{ marginBottom: '.75rem' }}>
+              <label>Motivo de la anulación <span style={{ color: 'var(--coral)' }}>*</span></label>
+              <input
+                type="text"
+                value={deleteReason}
+                onChange={e => setDeleteReason(e.target.value)}
+                placeholder="Ej: fichaje duplicado, error de entrada..."
+                autoFocus
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-sm" onClick={() => { setShowDeleteConfirm(false); setDeleteReason(''); }}>Cancelar</button>
+              <button
+                className="btn-danger"
+                disabled={!deleteReason.trim()}
+                onClick={() => { deleteRec(recId, deleteReason.trim()); onClose(); }}
+              >
+                Confirmar anulación
+              </button>
+            </div>
+          </div>
+        )}
         <div className="modal-foot" style={{ justifyContent: 'space-between' }}>
-          <button className="btn-danger" onClick={() => { if (window.confirm('¿Eliminar este registro?')) { deleteRec(recId); onClose(); } }}>Eliminar</button>
+          <button className="btn-danger" onClick={() => setShowDeleteConfirm(true)}>Anular registro</button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-sm" onClick={onClose}>Cancelar</button>
             <button className="btn-accent" onClick={handleSave}>Guardar y aprobar</button>
