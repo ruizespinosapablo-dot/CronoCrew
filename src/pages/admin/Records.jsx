@@ -104,7 +104,7 @@ export default function Records() {
                     {rec.libranza ? '—' : c ? fmt(c.net) : '—'}
                   </td>
                   <td>
-                    {!rec.libranza && totalNet != null && <span style={{ color: totalNet >= 0 ? 'var(--coral)' : 'var(--teal)' }}>{fmt(totalNet)}</span>}
+                    {!rec.libranza && totalNet != null && <span style={{ color: totalNet > 0 ? 'var(--coral)' : 'var(--teal)' }}>{fmt(totalNet)}</span>}
                     {rec.libranza && <span style={{ color: 'var(--coral)', fontWeight: 700 }}>{fmt(c.total)}</span>}
                     {' '}
                     {dayPaidExt > 0 && <span className="b bp" style={{ fontSize: 10 }}>💰{dayPaidExt}m</span>}
