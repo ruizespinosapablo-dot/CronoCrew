@@ -1,0 +1,126 @@
+import { useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { calcRec, fmt, fmtDate, weekDates, weekLabel, getToday, DAY_NAMES, MONTHS, ABS_MAP } from '../../lib/utils';
+import EditDayModal from '../../components/modals/EditDayModal';
+
+export default function History({ emp }) {
+  const { recs } = useApp();
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [editDay, setEditDay] = useState(null);
+
+  const dates = weekDates(weekOffset);
+  let weekNet = 0, weekSaldo = 0;
+
+  return (
+    <>
+      <div className="ph">
+        <div><h1>Historial de jornadas</h1><p>Edita días pasados — los cambios requieren aprobación</p></div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="btn-sm" onClick={() => setWeekOffset(w => w - 1)}>◀ Semana ant.</button>
+          <span style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'nowrap' }}>{weekLabel(weekOffset)}</span>
+          <button className="btn-sm" onClick={() => setWeekOffset(w => w + 1)}>Semana sig. ▶</button>
+        </div>
+      </div>
+
+      <div className="ws">
+        {DAY_NAMES.map((d, i) => {
+          const ds = dates[i];
+          const rec = recs.find(r => r.eid === emp.id && r.date === ds);
+          const isT = ds === getToday(), isW = i >= 5;
+          const hasdata = rec && (rec.exit || rec.libranza || rec.absence);
+          let lbl = '—';
+          if (rec) {
+            if (rec.absence) lbl = rec.absence.slice(0, 4).toUpperCase();
+            else if (rec.libranza) lbl = '📅';
+            else if (rec.exit) lbl = fmt(calcRec(rec, emp).net);
+            else if (rec.entry) lbl = rec.entry;
+          }
+          return (
+            <div key={ds} className={`wd${isT ? ' today' : ''}${isW ? ' wknd' : ''}${hasdata ? ' hasdata' : ''}`}>
+              <div className="wdn">{d}</div>
+              <div className="wdnum">{parseInt(ds.split('-')[2])}<span style={{ fontSize: 11, fontWeight: 500, opacity: .7, marginLeft: 3 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></div>
+              <div className="wdh">{lbl}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="tc">
+        <div className="tch"><h3>Detalle semanal</h3></div>
+        <table>
+          <thead>
+            <tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Descanso</th><th>Netas</th><th>Saldo</th><th>Estado</th><th>Obs.</th><th></th></tr>
+          </thead>
+          <tbody>
+            {DAY_NAMES.map((d, i) => {
+              const ds = dates[i];
+              const rec = recs.find(r => r.eid === emp.id && r.date === ds);
+              const isT = ds === getToday(), isW = i >= 5;
+              const c = (rec?.exit || rec?.libranza) ? calcRec(rec, emp) : null;
+              if (c?.net) weekNet += c.net;
+              if (c?.total) weekSaldo += c.total;
+
+              if (!rec) {
+                return (
+                  <tr key={ds} style={isW ? { opacity: .35 } : {}}>
+                    <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>{isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}</td>
+                    <td colSpan={isW ? 8 : 7} style={{ color: 'var(--text3)' }}>{isW ? '—' : 'Sin fichaje'}</td>
+                    {!isW && <td>{!isT && <button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>}
+                  </tr>
+                );
+              }
+              if (rec.absence) {
+                return (
+                  <tr key={ds} style={{ opacity: .7 }}>
+                    <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b></td>
+                    <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text2)', fontStyle: 'italic' }}>{ABS_MAP[rec.absence] || rec.absence}</td>
+                    <td><span className="b bg">Aprobado</span></td>
+                    <td></td>
+                  </tr>
+                );
+              }
+              const realBrk = rec.brk != null ? rec.brk : emp.brk;
+              const lib = rec.libranza;
+              let saldoEl = <span>—</span>;
+              if (lib) saldoEl = <span style={{ color: 'var(--coral)' }}>−{fmt(emp.ch * 60)}</span>;
+              else if (rec.exit && c) {
+                const parts = [];
+                if (c.comp > 0) parts.push(<span key="c" style={{ color: 'var(--coral)' }}>−{fmt(c.comp)}</span>);
+                if (c.accum > 0) parts.push(<span key="a" style={{ color: 'var(--teal)' }}>+{fmt(c.accum)}</span>);
+                if (c.extra > 0) parts.push(<span key="e" style={{ color: 'var(--purple)' }}>+{fmt(c.extra)} ext</span>);
+                saldoEl = parts.length ? <>{parts.map((p, idx) => <span key={idx}>{p} </span>)}</> : <span style={{ color: 'var(--text3)' }}>0</span>;
+              }
+              return (
+                <tr key={ds} style={isT ? { outline: '1px solid rgba(232,255,71,.25)' } : {}}>
+                  <td>
+                    <b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>
+                    {isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}
+                    {rec.special && <span className="b ba" style={{ fontSize: 10, marginLeft: 3 }}>⭐E</span>}
+                    {rec.catUp && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>⬆X</span>}
+                  </td>
+                  <td style={{ fontFamily: 'monospace' }}>{lib ? '—' : (rec.entry || '—')}</td>
+                  <td style={{ fontFamily: 'monospace' }}>{lib ? '—' : (rec.exit || '—')}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text2)' }}>{rec.exit ? fmt(realBrk) : '—'}</td>
+                  <td style={{ fontWeight: 700 }}>{lib ? '📅 Libranza' : (rec.exit ? fmt(c.net) : '—')}</td>
+                  <td>{saldoEl}</td>
+                  <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : <span className="b by">Pendiente</span>}</td>
+                  <td style={{ color: 'var(--text2)', fontSize: 12 }}>{rec.obs || '—'}</td>
+                  <td>{!isT && <button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={4} style={{ color: 'var(--text3)' }}>Total semana</td>
+              <td style={{ color: 'var(--teal)', fontWeight: 700 }}>{weekNet ? fmt(weekNet) : '—'}</td>
+              <td style={{ color: 'var(--teal)', fontWeight: 700 }}>{weekSaldo ? `${weekSaldo >= 0 ? '+' : ''}${fmt(Math.round(weekSaldo))}` : '—'}</td>
+              <td colSpan={3}></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {editDay && <EditDayModal empId={emp.id} date={editDay} onClose={() => setEditDay(null)} />}
+    </>
+  );
+}
