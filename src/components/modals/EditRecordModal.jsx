@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
-import { calcRec, fmt, fmtDate, t2m } from '../../lib/utils';
+import { calcRec, fmt, fmtDate } from '../../lib/utils';
 
 const ACTION_LABEL = { create: '✅ Creado', update: '✏️ Modificado', delete: '🚫 Anulado' };
 const ACTION_COLOR = { create: 'var(--teal)', update: 'var(--amber)', delete: 'var(--coral)' };
