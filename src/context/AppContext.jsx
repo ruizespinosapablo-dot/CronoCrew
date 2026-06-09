@@ -41,6 +41,12 @@ const mapEmp = row => ({
   dept: row.dept, dni: row.dni, email: row.email, initials: row.initials,
   color: row.color, start: row.start_time, end: row.end_time,
   brk: row.brk, ch: row.ch, cStart: row.c_start, cEnd: row.c_end,
+  brutoMes: row.bruto_mes ?? null,
+  irpfPct: row.irpf_pct ?? 0,
+  exentoSS: row.exento_ss ?? 0,
+  exentoIRPF: row.exento_irpf ?? 0,
+  descNomina: row.desc_nomina ?? 0,
+  tarifaHoraExt: row.tarifa_hora_ext ?? 0,
 });
 
 const mapRec = row => ({
@@ -96,6 +102,12 @@ const toEmpRow = e => ({
   dni: e.dni, email: e.email, initials: e.initials, color: e.color,
   start_time: e.start, end_time: e.end, brk: e.brk, ch: e.ch,
   c_start: e.cStart || null, c_end: e.cEnd || null,
+  bruto_mes: e.brutoMes ?? null,
+  irpf_pct: e.irpfPct ?? 0,
+  exento_ss: e.exentoSS ?? 0,
+  exento_irpf: e.exentoIRPF ?? 0,
+  desc_nomina: e.descNomina ?? 0,
+  tarifa_hora_ext: e.tarifaHoraExt ?? 0,
 });
 
 const toReqRow = r => ({

@@ -34,6 +34,10 @@ CREATE POLICY "express_anon_file" ON express_links
   USING (status = 'pending' AND expires_at > NOW())
   WITH CHECK (status = 'filed');
 
+-- El admin puede insertar (la app usa anon, no Supabase Auth)
+CREATE POLICY "express_anon_insert" ON express_links
+  FOR INSERT TO anon WITH CHECK (true);
+
 -- El admin (autenticado) tiene acceso total
 CREATE POLICY "express_auth_all" ON express_links
   FOR ALL TO authenticated

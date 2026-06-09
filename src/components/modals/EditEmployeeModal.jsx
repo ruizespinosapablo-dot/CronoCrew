@@ -20,6 +20,12 @@ export default function EditEmployeeModal({ empId, onClose }) {
   const [ch, setCh] = useState(8);
   const [cStart, setCStart] = useState('');
   const [cEnd, setCEnd] = useState('');
+  const [brutoMes, setBrutoMes]         = useState('');
+  const [irpfPct, setIrpfPct]           = useState('');
+  const [exentoSS, setExentoSS]         = useState('');
+  const [exentoIRPF, setExentoIRPF]     = useState('');
+  const [descNomina, setDescNomina]     = useState('');
+  const [tarifaHoraExt, setTarifaHoraExt] = useState('');
 
   useEffect(() => {
     if (!emp) return;
@@ -35,6 +41,12 @@ export default function EditEmployeeModal({ empId, onClose }) {
     setCh(emp.ch ?? 8);
     setCStart(emp.cStart || '');
     setCEnd(emp.cEnd || '');
+    setBrutoMes(emp.brutoMes != null ? String(emp.brutoMes) : '');
+    setIrpfPct(emp.irpfPct != null ? String(emp.irpfPct) : '');
+    setExentoSS(emp.exentoSS != null ? String(emp.exentoSS) : '');
+    setExentoIRPF(emp.exentoIRPF != null ? String(emp.exentoIRPF) : '');
+    setDescNomina(emp.descNomina != null ? String(emp.descNomina) : '');
+    setTarifaHoraExt(emp.tarifaHoraExt != null ? String(emp.tarifaHoraExt) : '');
   }, [emp]);
 
   if (!emp) return null;
@@ -50,6 +62,12 @@ export default function EditEmployeeModal({ empId, onClose }) {
       ch: parseFloat(ch) || emp.ch,
       cStart, cEnd: cEnd || null,
       initials,
+      brutoMes:     brutoMes !== '' ? parseFloat(brutoMes) : null,
+      irpfPct:      irpfPct !== '' ? parseFloat(irpfPct) : 0,
+      exentoSS:     exentoSS !== '' ? parseFloat(exentoSS) : 0,
+      exentoIRPF:   exentoIRPF !== '' ? parseFloat(exentoIRPF) : 0,
+      descNomina:   descNomina !== '' ? parseFloat(descNomina) : 0,
+      tarifaHoraExt: tarifaHoraExt !== '' ? parseFloat(tarifaHoraExt) : 0,
     });
     onClose();
   };
@@ -104,6 +122,43 @@ export default function EditEmployeeModal({ empId, onClose }) {
           <div className="fg"><label>Inicio de contrato</label><input type="date" value={cStart} onChange={e => setCStart(e.target.value)} /></div>
           <div className="fg"><label>Fin de contrato (vacío = indefinido)</label><input type="date" value={cEnd} onChange={e => setCEnd(e.target.value)} /></div>
         </div>
+        {/* Configuración salarial */}
+        <div style={{ borderTop: '1px solid var(--border2)', margin: '1rem 0 .75rem', paddingTop: '.75rem' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '.75rem' }}>
+            Configuración salarial (para Cierre mensual)
+          </div>
+          <div className="frow" style={{ marginBottom: '.75rem' }}>
+            <div className="fg">
+              <label>Bruto mensual fijo (€)</label>
+              <input type="number" step="0.01" value={brutoMes} onChange={e => setBrutoMes(e.target.value)} placeholder="Ej: 3104.10" />
+            </div>
+            <div className="fg">
+              <label>Retención IRPF (%)</label>
+              <input type="number" step="0.01" value={irpfPct} onChange={e => setIrpfPct(e.target.value)} placeholder="Ej: 17.85" />
+            </div>
+          </div>
+          <div className="frow" style={{ marginBottom: '.75rem' }}>
+            <div className="fg">
+              <label>Exento SS (€/mes)</label>
+              <input type="number" step="0.01" value={exentoSS} onChange={e => setExentoSS(e.target.value)} placeholder="Ej: 126.10 (km)" />
+            </div>
+            <div className="fg">
+              <label>Exento IRPF adicional (€/mes)</label>
+              <input type="number" step="0.01" value={exentoIRPF} onChange={e => setExentoIRPF(e.target.value)} placeholder="Ej: 153.00 (comedor)" />
+            </div>
+          </div>
+          <div className="frow">
+            <div className="fg">
+              <label>Descuento en nómina (€/mes)</label>
+              <input type="number" step="0.01" value={descNomina} onChange={e => setDescNomina(e.target.value)} placeholder="Ej: 153.00 (dto. comedor)" />
+            </div>
+            <div className="fg">
+              <label>Tarifa hora extra (€/h)</label>
+              <input type="number" step="0.01" value={tarifaHoraExt} onChange={e => setTarifaHoraExt(e.target.value)} placeholder="Ej: 15.00" />
+            </div>
+          </div>
+        </div>
+
         <div className="modal-foot">
           <button className="btn-sm" onClick={onClose}>Cancelar</button>
           <button className="btn-accent" onClick={handleSave}>Guardar cambios</button>
