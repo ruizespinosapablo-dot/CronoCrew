@@ -33,7 +33,8 @@ export default function Reports() {
   const [filterDept, setFilterDept] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [showPaid, setShowPaid] = useState(true);
+  const [showExt, setShowExt] = useState(true);
+  const [showOrd, setShowOrd] = useState(true);
   const [showSpecial, setShowSpecial] = useState(true);
   const [showCatUp, setShowCatUp] = useState(true);
   const [payEid, setPayEid] = useState(null);
@@ -101,7 +102,8 @@ export default function Reports() {
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1.25rem', alignItems: 'center' }}>
         <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em' }}>Mostrar:</span>
-        <button style={TOG(showPaid)}    onClick={() => setShowPaid(v => !v)}>💰 Pagos</button>
+        <button style={TOG(showExt)}     onClick={() => setShowExt(v => !v)}>💰 Extras pagadas</button>
+        <button style={TOG(showOrd)}     onClick={() => setShowOrd(v => !v)}>💰 Horas ordinarias</button>
         <button style={TOG(showSpecial)} onClick={() => setShowSpecial(v => !v)}>⭐ Jornadas especiales</button>
         <button style={TOG(showCatUp)}   onClick={() => setShowCatUp(v => !v)}>⬆ Subidas de categoría</button>
       </div>
@@ -123,12 +125,10 @@ export default function Reports() {
 
         // Lista unificada cronológica
         const allItems = [];
-        if (showPaid) {
-          empPaid.forEach(p => {
-            if (p.extMin > 0) allItems.push({ type: 'ext', date: p.date, note: p.note, amount: fmtMin(p.extMin), _dbId: p._dbId });
-            if (p.ordMin > 0) allItems.push({ type: 'ord', date: p.date, note: p.note, amount: fmt(p.ordMin),    _dbId: p._dbId });
-          });
-        }
+        empPaid.forEach(p => {
+          if (showExt && p.extMin > 0) allItems.push({ type: 'ext', date: p.date, note: p.note, amount: fmtMin(p.extMin), _dbId: p._dbId });
+          if (showOrd && p.ordMin > 0) allItems.push({ type: 'ord', date: p.date, note: p.note, amount: fmt(p.ordMin),    _dbId: p._dbId });
+        });
         if (showSpecial) specRecs.forEach(r => allItems.push({ type: 'special', date: r.date, note: r.specialNote }));
         if (showCatUp)   catUpRecs.forEach(r => allItems.push({ type: 'catup',   date: r.date, note: r.catUpNote  }));
         allItems.sort((a, b) => a.date.localeCompare(b.date));
