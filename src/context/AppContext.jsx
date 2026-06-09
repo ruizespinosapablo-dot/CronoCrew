@@ -107,7 +107,7 @@ export function AppProvider({ children }) {
         if (empsErr) throw empsErr;
 
         const [recsData, paidData, festivosData, reqsData, permsData] = await Promise.all([
-          supabase.from('recs').select('*').is('deleted_at', null).then(({ data, error }) => { if (error) throw error; return data; }),
+          supabase.from('recs').select('*').is('deleted_at', null).limit(10000).then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('paid').select('*').then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('festivos').select('*').order('date').then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('requests').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
