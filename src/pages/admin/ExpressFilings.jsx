@@ -10,7 +10,7 @@ const STATUS_LABEL = {
 };
 
 export default function ExpressFilings() {
-  const { expressLinks, addExpressLink, importExpressLink } = useApp();
+  const { expressLinks, addExpressLink, importExpressLink, deleteExpressLink } = useApp();
   const { showToast } = useToast();
 
   // Formulario
@@ -137,6 +137,8 @@ export default function ExpressFilings() {
             <tbody>
               {filed.map(l => {
                 const net = (l.entry && l.exit) ? Math.max(0, t2m(l.exit) - t2m(l.entry) - (l.brk || 60)) : null;
+                const extraMin = net !== null ? Math.max(0, net - (l.ch || 8) * 60) : 0;
+                const hasExtras = extraMin > 0;
                 return (
                   <tr key={l.id}>
                     <td>
@@ -147,16 +149,33 @@ export default function ExpressFilings() {
                     <td style={{ fontSize: 12 }}>{fmtDate(l.date)}</td>
                     <td style={{ fontFamily: 'monospace', color: 'var(--teal)', fontWeight: 600 }}>{l.entry || '—'}</td>
                     <td style={{ fontFamily: 'monospace', color: 'var(--coral)', fontWeight: 600 }}>{l.exit || '—'}</td>
-                    <td style={{ fontWeight: 700 }}>{net !== null ? fmt(net) : '—'}</td>
+                    <td style={{ fontWeight: 700 }}>
+                      {net !== null ? fmt(net) : '—'}
+                      {hasExtras && (
+                        <span style={{ marginLeft: 5, fontSize: 10, color: 'var(--purple)', fontWeight: 600 }}>
+                          +{fmt(extraMin)} ext
+                        </span>
+                      )}
+                    </td>
                     <td style={{ fontSize: 12, color: 'var(--text2)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.obs || '—'}</td>
                     <td>
-                      <button
-                        className="btn-teal"
-                        style={{ fontSize: 11, padding: '4px 10px', whiteSpace: 'nowrap' }}
-                        onClick={() => importExpressLink(l)}
-                      >
-                        Importar fichaje
-                      </button>
+                      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                        <button
+                          className={hasExtras ? 'btn-accent' : 'btn-teal'}
+                          style={{ fontSize: 11, padding: '4px 10px', whiteSpace: 'nowrap' }}
+                          onClick={() => importExpressLink(l, hasExtras)}
+                        >
+                          {hasExtras ? '⚡ Importar y pagar extras' : 'Importar fichaje'}
+                        </button>
+                        <button
+                          className="btn-sm"
+                          style={{ fontSize: 11, padding: '4px 8px', color: 'var(--coral)' }}
+                          title="Eliminar"
+                          onClick={() => deleteExpressLink(l.id)}
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -194,13 +213,23 @@ export default function ExpressFilings() {
                     </td>
                     <td><span className={`b ${expired ? 'bc' : 'by'}`}>{expired ? 'Expirado' : 'Esperando'}</span></td>
                     <td>
-                      <button
-                        className="btn-sm"
-                        style={{ color: copied === l.id ? 'var(--teal)' : undefined, fontSize: 11 }}
-                        onClick={() => copyLink(l.id)}
-                      >
-                        {copied === l.id ? '✓ Copiado' : '📋 Copiar enlace'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                        <button
+                          className="btn-sm"
+                          style={{ color: copied === l.id ? 'var(--teal)' : undefined, fontSize: 11 }}
+                          onClick={() => copyLink(l.id)}
+                        >
+                          {copied === l.id ? '✓ Copiado' : '📋 Copiar enlace'}
+                        </button>
+                        <button
+                          className="btn-sm"
+                          style={{ fontSize: 11, padding: '4px 8px', color: 'var(--coral)' }}
+                          title="Eliminar"
+                          onClick={() => deleteExpressLink(l.id)}
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

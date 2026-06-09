@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import { USERS } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { useToast } from './ToastContext';
+import { t2m } from '../lib/utils';
 
 const AppContext = createContext(null);
 
@@ -352,7 +353,14 @@ export function AppProvider({ children }) {
     return data.id;
   }, [showToast]);
 
-  const importExpressLink = useCallback(async (link) => {
+  const deleteExpressLink = useCallback(async (id) => {
+    const { error } = await supabase.from('express_links').delete().eq('id', id);
+    if (error) { showToast('Error al eliminar: ' + error.message, 'error'); return; }
+    setExpressLinks(prev => prev.filter(l => l.id !== id));
+    showToast('Enlace eliminado.', 'info');
+  }, [showToast]);
+
+  const importExpressLink = useCallback(async (link, withPayment = false) => {
     // 1. Buscar o crear empleado
     let eid = emps.find(e => e.dni && e.dni === link.dni && link.dni)?.id;
     if (!eid) {
@@ -373,21 +381,38 @@ export function AppProvider({ children }) {
     }
     // 2. Crear registro
     const recId = `${eid}_${link.date}_exp`;
+    const netMin = (link.entry && link.exit)
+      ? Math.max(0, t2m(link.exit) - t2m(link.entry) - (link.brk || 60))
+      : 0;
+    const extraMin = Math.max(0, netMin - (link.ch || 8) * 60);
     const recRow = {
       id: recId, eid, date: link.date,
       entry: link.entry, exit: link.exit, brk: link.brk || 60,
       obs: link.obs || 'Fichaje Express', status: 'approved', method: 'Express',
       cited_in: link.citedIn, cited_out: link.citedOut,
       absence: null, libranza: false, special: false, cat_up: false,
+      paid_extra: withPayment && extraMin > 0 ? extraMin : 0,
     };
     const { error: recErr } = await supabase.from('recs').upsert(recRow, { onConflict: 'id' });
     if (recErr) { showToast('Error al crear registro: ' + recErr.message, 'error'); return; }
     setRecs(prev => [...prev, mapRec(recRow)]);
     logAudit(recId, 'create', null, recRow);
-    // 3. Marcar como importado
+    // 3. Registrar pago de extras si procede
+    if (withPayment && extraMin > 0) {
+      const month = link.date.slice(0, 7);
+      const { data: paidData, error: paidErr } = await supabase.from('paid')
+        .insert({ eid, date: link.date, month, ord_min: 0, ext_min: extraMin, note: `Extras Fichaje Express · ${link.date}` })
+        .select().single();
+      if (paidErr) console.error('[paid insert]', paidErr.message);
+      else setPaid(prev => [...prev, mapPaid(paidData)]);
+    }
+    // 4. Marcar como importado
     await supabase.from('express_links').update({ status: 'imported' }).eq('id', link.id);
     setExpressLinks(prev => prev.filter(l => l.id !== link.id));
-    showToast(`Fichaje de ${link.name} importado.`, 'success');
+    const msg = withPayment && extraMin > 0
+      ? `Fichaje de ${link.name} importado con ${Math.round(extraMin / 60 * 10) / 10}h extras pagadas.`
+      : `Fichaje de ${link.name} importado.`;
+    showToast(msg, 'success');
   }, [emps, showToast]);
 
   const addEmpRequest = useCallback((req) => {
@@ -460,7 +485,7 @@ export function AppProvider({ children }) {
       adminPerms, addAdminPerm,
       festivos, addFestivo, removeFestivo,
       empRequests, addEmpRequest, updateEmpRequest,
-      expressLinks, addExpressLink, importExpressLink,
+      expressLinks, addExpressLink, importExpressLink, deleteExpressLink,
     }}>
       {children}
     </AppContext.Provider>
