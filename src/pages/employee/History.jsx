@@ -86,13 +86,16 @@ export default function History({ emp }) {
               }
               const realBrk = rec.brk != null ? rec.brk : emp.brk;
               const lib = rec.libranza;
+              const remainingExtra = Math.max(0, (c?.extra ?? 0) - dayPaidExtMin);
               let saldoEl = <span>—</span>;
               if (lib) saldoEl = <span style={{ color: 'var(--coral)' }}>−{fmt(emp.ch * 60)}</span>;
               else if (rec.exit && c) {
                 const parts = [];
                 if (c.comp > 0) parts.push(<span key="c" style={{ color: 'var(--coral)' }}>−{fmt(c.comp)}</span>);
                 if (c.accum > 0) parts.push(<span key="a" style={{ color: 'var(--teal)' }}>+{fmt(c.accum)}</span>);
-                if (c.extra > 0) parts.push(<span key="e" style={{ color: 'var(--purple)' }}>+{fmt(c.extra)} ext</span>);
+                if (remainingExtra > 0) parts.push(<span key="e" style={{ color: 'var(--purple)' }}>+{fmt(remainingExtra)} ext</span>);
+                if (dayPaidExtMin > 0) parts.push(<span key="pe" style={{ color: 'var(--amber)' }}>💰−{fmt(Math.round(dayPaidExtMin * 1.5))}</span>);
+                if (dayPaidOrdMin > 0) parts.push(<span key="po" style={{ color: 'var(--amber)' }}>💰−{fmt(dayPaidOrdMin)} ord</span>);
                 saldoEl = parts.length ? <>{parts.map((p, idx) => <span key={idx}>{p} </span>)}</> : <span style={{ color: 'var(--text3)' }}>0</span>;
               }
               return (
