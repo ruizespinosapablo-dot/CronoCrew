@@ -31,8 +31,71 @@ function DiffBadges({ prev, next }) {
   );
 }
 
+function DuplicatesCleaner({ recs, emps, deleteRec }) {
+  const groups = {};
+  recs.forEach(r => {
+    const key = `${r.eid}|${r.date}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+  const dupGroups = Object.values(groups).filter(g => g.length > 1);
+
+  if (dupGroups.length === 0) return (
+    <div className="tc" style={{ marginBottom: '1.5rem' }}>
+      <div className="tch"><h3>🔍 Duplicados</h3></div>
+      <div style={{ padding: '1rem 1.2rem', color: 'var(--teal)', fontSize: 13 }}>✓ Sin duplicados detectados.</div>
+    </div>
+  );
+
+  return (
+    <div className="tc" style={{ marginBottom: '1.5rem' }}>
+      <div className="tch" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ margin: 0 }}>⚠️ Duplicados detectados</h3>
+        <span style={{ fontSize: 12, color: 'var(--coral)' }}>{dupGroups.length} fecha{dupGroups.length !== 1 ? 's' : ''} con duplicados</span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Empleado</th><th>Fecha</th><th>Registros</th><th>Acción</th></tr>
+        </thead>
+        <tbody>
+          {dupGroups.map(group => {
+            const emp = emps.find(e => e.id === group[0].eid);
+            const sorted = [...group].sort((a, b) => a.id.localeCompare(b.id));
+            const toDelete = sorted.slice(1);
+            return (
+              <tr key={`${group[0].eid}|${group[0].date}`}>
+                <td style={{ fontSize: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {emp && <div className="avatar" style={{ background: emp.color, color: '#fff', width: 22, height: 22, fontSize: 9 }}>{emp.initials}</div>}
+                    {emp?.name || group[0].eid}
+                  </div>
+                </td>
+                <td style={{ fontSize: 12, color: 'var(--text2)' }}>{fmtDate(group[0].date)}</td>
+                <td style={{ fontSize: 11, color: 'var(--text3)' }}>{group.length} registros (se conservará el primero)</td>
+                <td>
+                  <button
+                    className="btn-sm"
+                    style={{ color: 'var(--coral)', borderColor: 'var(--coral)' }}
+                    onClick={() => {
+                      if (window.confirm(`¿Eliminar ${toDelete.length} duplicado(s) de ${emp?.name || group[0].eid} el ${fmtDate(group[0].date)}?`)) {
+                        toDelete.forEach(r => deleteRec(r.id, 'Duplicado eliminado automáticamente'));
+                      }
+                    }}
+                  >
+                    Limpiar {toDelete.length} duplicado{toDelete.length !== 1 ? 's' : ''}
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function Audit() {
-  const { emps } = useApp();
+  const { emps, recs, deleteRec } = useApp();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterAction, setFilterAction] = useState('');
@@ -81,6 +144,8 @@ export default function Audit() {
 
   return (
     <>
+      <DuplicatesCleaner recs={recs} emps={emps} deleteRec={deleteRec} />
+
       <div className="ph">
         <div>
           <h1>Auditoría</h1>
