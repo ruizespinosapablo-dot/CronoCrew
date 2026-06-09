@@ -49,7 +49,21 @@ export default function Clock({ emp }) {
   const todayFestivo = todayIsFestivo ? festivos.find(f => f.date === TODAY) : null;
 
   const rec = recs.find(r => r.eid === emp.id && r.date === TODAY);
-  const calc = rec?.exit ? calcRec(rec, emp) : null;
+  const calc = rec?.exit ? calcRec({ ...rec, citedIn, citedOut, brk: parseInt(brkMins) || emp.brk }, emp) : null;
+
+  const citedNet = t2m(citedOut) - t2m(citedIn) - (parseInt(brkMins) || emp.brk);
+  const isLongCited = citedNet > 555; // > 9h15m
+
+  const applyCited = () => {
+    if (!rec) { showToast('Debes fichar primero.', 'warning'); return; }
+    upsertRec({
+      ...rec,
+      citedIn, citedOut,
+      brk: parseInt(brkMins) || emp.brk,
+      ...(isLongCited ? { special: true } : {}),
+    });
+    showToast(isLongCited ? 'Hora citada aplicada · ⭐ Jornada especial marcada' : 'Hora citada aplicada', 'success');
+  };
 
   const pendingDays = useMemo(() => {
     if (!emp.cStart) return [];
@@ -241,7 +255,8 @@ export default function Clock({ emp }) {
                 <label style={{ fontSize: 12, color: 'var(--text2)' }}>Salida</label>
                 <input type="time" className="tinput" value={citedOut} onChange={e => setCitedOut(e.target.value)} />
               </div>
-              <span style={{ fontSize: 11, color: 'var(--text3)' }}>Editable para este día</span>
+              <button className="btn-sm" onClick={applyCited}>Aplicar</button>
+              {isLongCited && <span className="b ba" style={{ fontSize: 11 }}>⭐ Jornada especial</span>}
             </div>
           </div>
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
