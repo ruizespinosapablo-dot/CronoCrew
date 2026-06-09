@@ -4,7 +4,7 @@ import { calcRec, fmt, fmtDate, weekDates, weekLabel, getToday, DAY_NAMES, MONTH
 import EditDayModal from '../../components/modals/EditDayModal';
 
 export default function History({ emp }) {
-  const { recs } = useApp();
+  const { recs, paid } = useApp();
   const [weekOffset, setWeekOffset] = useState(0);
   const [editDay, setEditDay] = useState(null);
 
@@ -57,8 +57,13 @@ export default function History({ emp }) {
               const rec = recs.find(r => r.eid === emp.id && r.date === ds);
               const isT = ds === getToday(), isW = i >= 5;
               const c = (rec?.exit || rec?.libranza) ? calcRec(rec, emp) : null;
+              const dayPaid = paid.filter(p => p.eid === emp.id && p.date === ds);
+              const dayPaidExtMin = dayPaid.reduce((a, p) => a + p.extMin, 0);
+              const dayPaidOrdMin = dayPaid.reduce((a, p) => a + p.ordMin, 0);
+              const dayPaidDeduction = dayPaidExtMin * 1.5 + dayPaidOrdMin;
               if (c?.net) weekNet += c.net;
               if (c?.total) weekSaldo += c.total;
+              if (dayPaidDeduction > 0) weekSaldo -= dayPaidDeduction;
 
               if (!rec) {
                 return (
@@ -96,7 +101,8 @@ export default function History({ emp }) {
                     <b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>
                     {isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}
                     {rec.special && <span className="b ba" style={{ fontSize: 10, marginLeft: 3 }}>⭐E</span>}
-                    {rec.catUp && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>⬆X</span>}
+                    {rec.catUp && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>⬆</span>}
+                    {dayPaidExtMin > 0 && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>💰{fmt(dayPaidExtMin)}</span>}
                   </td>
                   <td style={{ fontFamily: 'monospace' }}>{lib ? '—' : (rec.entry || '—')}</td>
                   <td style={{ fontFamily: 'monospace' }}>{lib ? '—' : (rec.exit || '—')}</td>
