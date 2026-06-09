@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { calcRec, fmt, fmtDate, t2m } from '../../lib/utils';
+import { calcRecForEmp, fmt, fmtDate, t2m } from '../../lib/utils';
 import { DEPARTMENTS } from '../../lib/data';
 import EditRecordModal from '../../components/modals/EditRecordModal';
 
@@ -51,7 +51,7 @@ export default function Records() {
             ['Empleado', 'Departamento', 'Fecha', 'Entrada', 'Salida', 'Descanso (min)', 'Netas', 'Total día', 'Estado', 'Obs.'].map(escape).join(','),
             ...filtered.map(r => {
               const emp = emps.find(e => e.id === r.eid);
-              const c = (r.entry && r.exit) ? calcRec(r, emp) : null;
+              const c = (r.entry && r.exit) ? calcRecForEmp(r, emp) : null;
               return [
                 emp?.name ?? r.eid, emp?.dept ?? '', r.date,
                 r.entry || '', r.exit || '', r.brk ?? '',
@@ -123,9 +123,10 @@ export default function Records() {
                   </tr>
                 );
               }
-              const c = (rec.exit || rec.libranza) ? calcRec(rec, emp) : null;
+              const isActorRec = emp.dept === 'Actores';
+              const c = ((isActorRec ? rec.actorEnd : rec.exit) || rec.libranza) ? calcRecForEmp(rec, emp) : null;
               const dayPaidExt = paid.filter(p => p.eid === rec.eid && p.date === rec.date).reduce((a, p) => a + p.extMin, 0);
-              const totalNet = c ? Math.round(c.total - dayPaidExt * 1.5) : null;
+              const totalNet = c ? Math.round(c.total - (isActorRec ? 0 : dayPaidExt * 1.5)) : null;
               return (
                 <tr key={rec.id} style={rowStyle}>
                   <td style={{ fontSize: 12 }}>

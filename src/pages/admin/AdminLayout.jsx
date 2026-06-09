@@ -8,6 +8,7 @@ import Requests from './Requests';
 import Permissions from './Permissions';
 import Reports from './Reports';
 import Audit from './Audit';
+import ExpressFilings from './ExpressFilings';
 
 const PAGES = [
   { id: 'dash', label: 'Panel',       icon: 'ti-layout-dashboard' },
@@ -17,15 +18,16 @@ const PAGES = [
   { id: 'perm', label: 'Permisos',    icon: 'ti-calendar-off' },
   { id: 'rep',  label: 'Informes',    icon: 'ti-chart-bar' },
   { id: 'aud',  label: 'Auditoría',   icon: 'ti-shield-check' },
+  { id: 'exp',  label: 'Express',     icon: 'ti-bolt', badge: true },
 ];
 
 export default function AdminLayout() {
-  const { logout, recs, empRequests } = useApp();
+  const { logout, recs, empRequests, expressLinks } = useApp();
   const [page, setPage] = useState('reg');
-
   const badgeCount = {
     reg: recs.filter(r => r.status === 'pending').length,
     req: empRequests.filter(r => r.status === 'pending').length,
+    exp: expressLinks?.filter(l => l.status === 'filed').length ?? 0,
   };
 
   return (
@@ -78,6 +80,7 @@ export default function AdminLayout() {
           {page === 'perm' && <Permissions />}
           {page === 'rep'  && <Reports />}
           {page === 'aud'  && <Audit />}
+          {page === 'exp'  && <ExpressFilings />}
         </div>
       </div>
     </div>

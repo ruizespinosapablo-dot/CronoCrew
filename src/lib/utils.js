@@ -53,12 +53,48 @@ export function calcRec(rec, emp) {
   return { net, accum, comp, extra, total, citedNet, citedStart: ci, citedEnd: co };
 }
 
+// Actors: effective = (actorEnd - actorCited) - actorBreak
+//   + max(0, actorMakeup - 60)          [makeup beyond first hour]
+//   + max(0, actorTravelIn + actorTravelOut - 90)  [travel beyond 1h30]
+// No "extra" concept — only accum and comp.
+export function calcActorRec(rec, emp) {
+  if (!rec || rec.absence) return { net: 0, accum: 0, comp: 0, total: 0, absence: rec?.absence };
+  if (rec.libranza) {
+    const contractMin = emp.ch * 60;
+    return { net: 0, accum: 0, comp: contractMin, total: -contractMin, libranza: true };
+  }
+  if (!rec.actorEnd || !rec.actorCited) return { net: 0, accum: 0, comp: 0, total: 0 };
+  let endMin = t2m(rec.actorEnd), citedMin = t2m(rec.actorCited);
+  if (endMin < citedMin) endMin += 24 * 60;
+  const base = endMin - citedMin;
+  const brk = rec.actorBreak ?? 0;
+  const makeupExtra = Math.max(0, (rec.actorMakeup ?? 0) - 60);
+  const travelExtra = Math.max(0, (rec.actorTravelIn ?? 0) + (rec.actorTravelOut ?? 0) - 90);
+  const net = base - brk + makeupExtra + travelExtra;
+  const contractMin = emp.ch * 60;
+  const accum = Math.max(0, net - contractMin);
+  const comp = Math.max(0, contractMin - net);
+  return { net, accum, comp, total: accum - comp, makeupExtra, travelExtra };
+}
+
+export function calcRecForEmp(rec, emp) {
+  return emp?.dept === 'Actores' ? calcActorRec(rec, emp) : calcRec(rec, emp);
+}
+
 export function calcPeriod(eid, emps, recs, filterFn) {
   const emp = emps.find(e => e.id === eid);
-  const filtered = recs.filter(r => r.eid === eid && !r.absence && (r.exit || r.libranza) && (!filterFn || filterFn(r)));
+  const isActor = emp?.dept === 'Actores';
+  const filtered = recs.filter(r =>
+    r.eid === eid && !r.absence &&
+    (r.exit || r.actorEnd || r.libranza) &&
+    (!filterFn || filterFn(r))
+  );
   let accum = 0, comp = 0, extra = 0, days = 0;
-  filtered.forEach(r => { const c = calcRec(r, emp); accum += c.accum; comp += c.comp; extra += c.extra; days++; });
-  const total = accum + extra * 1.5 - comp;
+  filtered.forEach(r => {
+    const c = isActor ? calcActorRec(r, emp) : calcRec(r, emp);
+    accum += c.accum; comp += c.comp; extra += (c.extra || 0); days++;
+  });
+  const total = isActor ? (accum - comp) : (accum + extra * 1.5 - comp);
   return { accum, comp, extra, total, days };
 }
 

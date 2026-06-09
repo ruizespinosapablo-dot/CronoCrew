@@ -20,6 +20,8 @@ export default function NewEmployeeModal({ onClose }) {
   const [cStart, setCStart] = useState(new Date().toISOString().slice(0, 10));
   const [cEnd, setCEnd] = useState('');
 
+  const isActor = dept === 'Actores';
+
   const handleCreate = () => {
     if (!name || !username || !alias) return;
     const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -27,8 +29,11 @@ export default function NewEmployeeModal({ onClose }) {
     const color = colors[Math.floor(Math.random() * colors.length)];
     addEmp({
       id: username, name, alias, dni, email, role, dept,
-      initials, color, start, end,
-      brk: parseInt(brk), ch: parseFloat(ch),
+      initials, color,
+      start: isActor ? '' : start,
+      end: isActor ? '' : end,
+      brk: isActor ? 0 : parseInt(brk),
+      ch: parseFloat(ch),
       cStart, cEnd: cEnd || null,
     });
     onClose();
@@ -60,14 +65,21 @@ export default function NewEmployeeModal({ onClose }) {
           <div className="fg"><label>Usuario</label><input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="laura" /></div>
           <div className="fg"><label>Contraseña</label><input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" /></div>
         </div>
+        {!isActor && (
+          <div className="frow">
+            <div className="fg"><label>Entrada asignada</label><input type="time" value={start} onChange={e => setStart(e.target.value)} /></div>
+            <div className="fg"><label>Salida asignada</label><input type="time" value={end} onChange={e => setEnd(e.target.value)} /></div>
+          </div>
+        )}
         <div className="frow">
-          <div className="fg"><label>Entrada asignada</label><input type="time" value={start} onChange={e => setStart(e.target.value)} /></div>
-          <div className="fg"><label>Salida asignada</label><input type="time" value={end} onChange={e => setEnd(e.target.value)} /></div>
-        </div>
-        <div className="frow">
-          <div className="fg"><label>Descanso (min)</label><input type="number" value={brk} min={0} step={15} onChange={e => setBrk(e.target.value)} /></div>
+          {!isActor && <div className="fg"><label>Descanso (min)</label><input type="number" value={brk} min={0} step={15} onChange={e => setBrk(e.target.value)} /></div>}
           <div className="fg"><label>Horas/día contrato</label><input type="number" value={ch} min={1} step={0.5} onChange={e => setCh(e.target.value)} /></div>
         </div>
+        {isActor && (
+          <div style={{ fontSize: 12, color: 'var(--text3)', padding: '.5rem .75rem', background: 'var(--bg3)', borderRadius: 8, marginBottom: '.5rem' }}>
+            Los actores no tienen horario fijo — sus jornadas se registran día a día con caracterización y tiempos de viaje.
+          </div>
+        )}
         <div className="frow">
           <div className="fg"><label>Inicio de contrato</label><input type="date" value={cStart} onChange={e => setCStart(e.target.value)} /></div>
           <div className="fg"><label>Fin de contrato (opcional)</label><input type="date" value={cEnd} onChange={e => setCEnd(e.target.value)} /></div>

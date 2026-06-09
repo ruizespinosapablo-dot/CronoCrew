@@ -15,6 +15,26 @@ const REQ_TYPE_MAP = {
 };
 
 // Supabase row → app object
+const mapExpressLink = row => ({
+  id: row.id,
+  name: row.name,
+  dni: row.dni || '',
+  dept: row.dept || '',
+  role: row.role || '',
+  date: row.date,
+  citedIn: row.cited_in || '',
+  citedOut: row.cited_out || '',
+  ch: row.ch || 8,
+  brk: row.brk || 60,
+  entry: row.entry || null,
+  exit: row.exit || null,
+  obs: row.obs || '',
+  status: row.status || 'pending',
+  createdAt: row.created_at,
+  expiresAt: row.expires_at,
+  filedAt: row.filed_at || null,
+});
+
 const mapEmp = row => ({
   id: row.id, name: row.name, alias: row.alias, role: row.role,
   dept: row.dept, dni: row.dni, email: row.email, initials: row.initials,
@@ -33,6 +53,9 @@ const mapRec = row => ({
   specialNote: row.special_note || null,
   catUp: row.cat_up || false, catUpNote: row.cat_up_note || null,
   deletedAt: row.deleted_at || null, deletedBy: row.deleted_by || null,
+  actorCited: row.actor_cited || null, actorEnd: row.actor_end || null,
+  actorMakeup: row.actor_makeup ?? null, actorTravelIn: row.actor_travel_in ?? null,
+  actorTravelOut: row.actor_travel_out ?? null, actorBreak: row.actor_break ?? null,
 });
 
 const mapPaid = row => ({
@@ -62,6 +85,9 @@ const toRecRow = r => ({
   special_note: r.specialNote || null,
   cat_up: r.catUp || false, cat_up_note: r.catUpNote || null,
   deleted_at: r.deletedAt || null, deleted_by: r.deletedBy || null,
+  actor_cited: r.actorCited || null, actor_end: r.actorEnd || null,
+  actor_makeup: r.actorMakeup ?? null, actor_travel_in: r.actorTravelIn ?? null,
+  actor_travel_out: r.actorTravelOut ?? null, actor_break: r.actorBreak ?? null,
 });
 
 const toEmpRow = e => ({
@@ -94,6 +120,7 @@ export function AppProvider({ children }) {
   const [adminPerms, setAdminPerms] = useState([]);
   const [festivos, setFestivos] = useState([]);
   const [empRequests, setEmpRequests] = useState([]);
+  const [expressLinks, setExpressLinks] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -119,12 +146,13 @@ export function AppProvider({ children }) {
           return all;
         };
 
-        const [recsData, paidData, festivosData, reqsData, permsData] = await Promise.all([
+        const [recsData, paidData, festivosData, reqsData, permsData, expressData] = await Promise.all([
           fetchAllRecs(),
           supabase.from('paid').select('*').then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('festivos').select('*').order('date').then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('requests').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
           supabase.from('admin_perms').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
+          supabase.from('express_links').select('*').neq('status', 'imported').order('created_at', { ascending: false }).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
         ]);
 
         setEmps(empsData.map(mapEmp));
@@ -133,6 +161,14 @@ export function AppProvider({ children }) {
         setFestivos(festivosData);
         setEmpRequests(reqsData.map(mapReq));
         setAdminPerms(permsData.map(mapPerm));
+        setExpressLinks(expressData.map(mapExpressLink));
+
+        // Realtime: cuando un trabajador ficha, el admin lo ve al instante
+        supabase.channel('express_links_watch')
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'express_links' }, ({ new: row }) => {
+            setExpressLinks(prev => prev.map(l => l.id === row.id ? mapExpressLink(row) : l));
+          })
+          .subscribe();
       } catch (err) {
         console.error('Error cargando datos desde Supabase:', err);
         setDbError(err.message || 'Error de conexión');
@@ -304,6 +340,56 @@ export function AppProvider({ children }) {
     sb(supabase.from('festivos').delete().eq('date', date));
   }, []);
 
+  const addExpressLink = useCallback(async (link) => {
+    const { data, error } = await supabase.from('express_links').insert({
+      name: link.name, dni: link.dni || '', dept: link.dept || '',
+      role: link.role || '', date: link.date,
+      cited_in: link.citedIn, cited_out: link.citedOut,
+      ch: link.ch, brk: link.brk,
+    }).select().single();
+    if (error) { showToast('Error al crear el enlace: ' + error.message, 'error'); return null; }
+    setExpressLinks(prev => [mapExpressLink(data), ...prev]);
+    return data.id;
+  }, [showToast]);
+
+  const importExpressLink = useCallback(async (link) => {
+    // 1. Buscar o crear empleado
+    let eid = emps.find(e => e.dni && e.dni === link.dni && link.dni)?.id;
+    if (!eid) {
+      const slug = link.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 28);
+      eid = slug + '_' + link.id.slice(0, 6);
+      const empRow = {
+        id: eid, name: link.name,
+        alias: link.name.split(' ').filter(Boolean)[0] || link.name,
+        role: link.role || 'Refuerzo', dept: link.dept || 'Sin departamento',
+        dni: link.dni || '', email: '', initials:
+          link.name.split(' ').filter(Boolean).map(p => p[0].toUpperCase()).join('').slice(0, 2) || 'XX',
+        color: '#6b7191', start_time: link.citedIn || '09:00', end_time: link.citedOut || '18:00',
+        brk: link.brk || 60, ch: link.ch || 8, c_start: link.date, c_end: link.date,
+      };
+      const { error: empErr } = await supabase.from('emps').insert(empRow);
+      if (empErr) { showToast('Error al crear empleado: ' + empErr.message, 'error'); return; }
+      setEmps(prev => [...prev, mapEmp(empRow)]);
+    }
+    // 2. Crear registro
+    const recId = `${eid}_${link.date}_exp`;
+    const recRow = {
+      id: recId, eid, date: link.date,
+      entry: link.entry, exit: link.exit, brk: link.brk || 60,
+      obs: link.obs || 'Fichaje Express', status: 'approved', method: 'Express',
+      cited_in: link.citedIn, cited_out: link.citedOut,
+      absence: null, libranza: false, special: false, cat_up: false,
+    };
+    const { error: recErr } = await supabase.from('recs').upsert(recRow, { onConflict: 'id' });
+    if (recErr) { showToast('Error al crear registro: ' + recErr.message, 'error'); return; }
+    setRecs(prev => [...prev, mapRec(recRow)]);
+    logAudit(recId, 'create', null, recRow);
+    // 3. Marcar como importado
+    await supabase.from('express_links').update({ status: 'imported' }).eq('id', link.id);
+    setExpressLinks(prev => prev.filter(l => l.id !== link.id));
+    showToast(`Fichaje de ${link.name} importado.`, 'success');
+  }, [emps, showToast]);
+
   const addEmpRequest = useCallback((req) => {
     setEmpRequests(prev => [...prev, req]);
     sb(supabase.from('requests').insert(toReqRow(req)));
@@ -374,6 +460,7 @@ export function AppProvider({ children }) {
       adminPerms, addAdminPerm,
       festivos, addFestivo, removeFestivo,
       empRequests, addEmpRequest, updateEmpRequest,
+      expressLinks, addExpressLink, importExpressLink,
     }}>
       {children}
     </AppContext.Provider>

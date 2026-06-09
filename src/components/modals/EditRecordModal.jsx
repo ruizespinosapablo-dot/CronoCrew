@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
-import { calcRec, fmt, fmtDate } from '../../lib/utils';
+import { calcRec, calcActorRec, fmt, fmtDate } from '../../lib/utils';
 import { useEnterKey } from '../../lib/useEnterKey';
 
 const ACTION_LABEL = { create: '✅ Creado', update: '✏️ Modificado', delete: '🚫 Anulado' };
@@ -49,6 +49,8 @@ export default function EditRecordModal({ recId, onClose }) {
   const rec = recs.find(r => r.id === recId);
   const emp = rec ? emps.find(e => e.id === rec.eid) : null;
 
+  const isActor = emp?.dept === 'Actores';
+
   const [isLibranza, setIsLibranza] = useState(false);
   const [ci, setCi] = useState('');
   const [co, setCo] = useState('');
@@ -64,6 +66,13 @@ export default function EditRecordModal({ recId, onClose }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [payCheck, setPayCheck] = useState(false);
   const [payExt, setPayExt] = useState(0);
+  // Actor-specific fields
+  const [actorCited, setActorCited] = useState('');
+  const [actorEnd, setActorEnd] = useState('');
+  const [actorMakeup, setActorMakeup] = useState(60);
+  const [actorTravelIn, setActorTravelIn] = useState(0);
+  const [actorTravelOut, setActorTravelOut] = useState(0);
+  const [actorBreak, setActorBreak] = useState(60);
 
   useEffect(() => {
     if (!rec || !emp) return;
@@ -78,6 +87,12 @@ export default function EditRecordModal({ recId, onClose }) {
     setSpecialNote(rec.specialNote || '');
     setCatUp(rec.catUp || false);
     setCatUpNote(rec.catUpNote || '');
+    setActorCited(rec.actorCited || rec.entry || '');
+    setActorEnd(rec.actorEnd || rec.exit || '');
+    setActorMakeup(rec.actorMakeup ?? 60);
+    setActorTravelIn(rec.actorTravelIn ?? 0);
+    setActorTravelOut(rec.actorTravelOut ?? 0);
+    setActorBreak(rec.actorBreak ?? 60);
     const prevPay = paid.find(p => p.eid === rec.eid && p.date === rec.date);
     if (prevPay) { setPayCheck(true); setPayExt(prevPay.extMin || 0); }
     else { setPayCheck(false); setPayExt(0); }
@@ -87,8 +102,12 @@ export default function EditRecordModal({ recId, onClose }) {
 
   const contractMin = emp.ch * 60;
 
-  const preview = !isLibranza && entry && exit
+  const preview = !isActor && !isLibranza && entry && exit
     ? calcRec({ ...rec, entry, exit, brk: parseInt(brk) || 0, citedIn: ci, citedOut: co, libranza: false }, emp)
+    : null;
+
+  const actorPreview = isActor && !isLibranza && actorCited && actorEnd
+    ? calcActorRec({ actorCited, actorEnd, actorMakeup: +actorMakeup, actorTravelIn: +actorTravelIn, actorTravelOut: +actorTravelOut, actorBreak: +actorBreak }, emp)
     : null;
 
   const handleSave = () => {
@@ -97,9 +116,20 @@ export default function EditRecordModal({ recId, onClose }) {
         entry: '', exit: '', brk: emp.brk, obs: obs || 'Libranza',
         status: 'approved', libranza: true,
         special: false, specialNote: '', catUp: false, catUpNote: '',
-        citedIn: ci, citedOut: co,
+        citedIn: '', citedOut: '',
+        actorCited: null, actorEnd: null,
       });
       removePaid(rec.eid, rec.date);
+    } else if (isActor) {
+      updateRec(recId, {
+        entry: actorCited, exit: actorEnd,
+        brk: +actorBreak, obs, status: 'approved',
+        citedIn: actorCited, citedOut: actorEnd,
+        actorCited, actorEnd,
+        actorMakeup: +actorMakeup, actorTravelIn: +actorTravelIn,
+        actorTravelOut: +actorTravelOut, actorBreak: +actorBreak,
+        libranza: false, special: false, catUp: false,
+      });
     } else {
       updateRec(recId, {
         citedIn: ci, citedOut: co, entry, exit,
@@ -139,11 +169,27 @@ export default function EditRecordModal({ recId, onClose }) {
           )}
         </div>
 
-        <div className="frow">
-          <div className="fg"><label>Hora citada entrada</label><input type="time" value={ci} onChange={e => setCi(e.target.value)} /></div>
-          <div className="fg"><label>Hora citada salida</label><input type="time" value={co} onChange={e => setCo(e.target.value)} /></div>
-        </div>
-        {!isLibranza && (
+        {!isActor && (
+          <div className="frow">
+            <div className="fg"><label>Hora citada entrada</label><input type="time" value={ci} onChange={e => setCi(e.target.value)} /></div>
+            <div className="fg"><label>Hora citada salida</label><input type="time" value={co} onChange={e => setCo(e.target.value)} /></div>
+          </div>
+        )}
+        {isActor && !isLibranza && (
+          <>
+            <div className="frow">
+              <div className="fg"><label>Hora de citación</label><input type="time" value={actorCited} onChange={e => setActorCited(e.target.value)} /></div>
+              <div className="fg"><label>Fin de jornada</label><input type="time" value={actorEnd} onChange={e => setActorEnd(e.target.value)} /></div>
+            </div>
+            <div className="frow">
+              <div className="fg"><label>Caracterización (min)</label><input type="number" value={actorMakeup} min={0} step={5} onChange={e => setActorMakeup(e.target.value)} /></div>
+              <div className="fg"><label>Viaje ida (min)</label><input type="number" value={actorTravelIn} min={0} step={5} onChange={e => setActorTravelIn(e.target.value)} /></div>
+              <div className="fg"><label>Viaje vuelta (min)</label><input type="number" value={actorTravelOut} min={0} step={5} onChange={e => setActorTravelOut(e.target.value)} /></div>
+              <div className="fg"><label>Descanso (min)</label><input type="number" value={actorBreak} min={0} step={5} onChange={e => setActorBreak(e.target.value)} /></div>
+            </div>
+          </>
+        )}
+        {!isActor && !isLibranza && (
           <>
             <div className="frow">
               <div className="fg"><label>Entrada real</label><input type="time" value={entry} onChange={e => setEntry(e.target.value)} /></div>
@@ -155,12 +201,24 @@ export default function EditRecordModal({ recId, onClose }) {
             </div>
           </>
         )}
-        {isLibranza && (
+        {(isLibranza || isActor) && (
           <div className="frow">
-            <div className="fg"><label>Observación</label><input type="text" value={obs} onChange={e => setObs(e.target.value)} placeholder="Libranza" /></div>
+            <div className="fg"><label>Observación</label><input type="text" value={obs} onChange={e => setObs(e.target.value)} placeholder={isLibranza ? 'Libranza' : 'Opcional'} /></div>
           </div>
         )}
 
+        {actorPreview && (
+          <div className="calc-box" style={{ marginBottom: '1rem' }}>
+            <div className="calc-grid">
+              <div className="cg-item"><div className="cg-l">Citación – Fin</div><div className="cg-v">{actorCited}–{actorEnd}</div></div>
+              <div className="cg-item"><div className="cg-l">Caract. extra</div><div className="cg-v" style={{ color: 'var(--teal)' }}>{actorPreview.makeupExtra > 0 ? '+' + fmt(actorPreview.makeupExtra) : '—'}</div></div>
+              <div className="cg-item"><div className="cg-l">Viaje extra</div><div className="cg-v" style={{ color: 'var(--teal)' }}>{actorPreview.travelExtra > 0 ? '+' + fmt(actorPreview.travelExtra) : '—'}</div></div>
+              <div className="cg-item"><div className="cg-l">Trabajo efectivo</div><div className="cg-v">{fmt(actorPreview.net)}</div></div>
+              <div className="cg-item"><div className="cg-l">Acumulado</div><div className="cg-v" style={{ color: 'var(--teal)' }}>{actorPreview.accum > 0 ? '+' + fmt(actorPreview.accum) : '—'}</div></div>
+              <div className="cg-item"><div className="cg-l">Compensado</div><div className="cg-v" style={{ color: 'var(--coral)' }}>{actorPreview.comp > 0 ? '−' + fmt(actorPreview.comp) : '—'}</div></div>
+            </div>
+          </div>
+        )}
         {preview && (
           <div className="calc-box" style={{ marginBottom: '1rem' }}>
             <div className="calc-grid">
@@ -183,44 +241,48 @@ export default function EditRecordModal({ recId, onClose }) {
           </div>
         )}
 
-        <div className="tog-section" style={{ opacity: isLibranza ? 0.35 : 1, pointerEvents: isLibranza ? 'none' : undefined }}>
-          <label className="tog-label">
-            <input type="checkbox" checked={special} onChange={e => setSpecial(e.target.checked)} disabled={isLibranza} />
-            <span style={{ color: 'var(--amber)' }}>⭐ Marcar como jornada especial (E)</span>
-          </label>
-          {special && !isLibranza && (
-            <div className="tog-body">
-              <div className="fg" style={{ marginBottom: 0 }}><label>Nota para el empleado</label><input type="text" value={specialNote} onChange={e => setSpecialNote(e.target.value)} placeholder="Ej: rodaje festivo, guardia..." /></div>
-            </div>
-          )}
-        </div>
-        <div className="tog-section" style={{ opacity: isLibranza ? 0.35 : 1, pointerEvents: isLibranza ? 'none' : undefined }}>
-          <label className="tog-label">
-            <input type="checkbox" checked={catUp} onChange={e => setCatUp(e.target.checked)} disabled={isLibranza} />
-            <span style={{ color: 'var(--purple)' }}>⬆ Subida de categoría (X)</span>
-          </label>
-          {catUp && !isLibranza && (
-            <div className="tog-body">
-              <div className="fg" style={{ marginBottom: 0 }}><label>Motivo / categoría aplicada</label><input type="text" value={catUpNote} onChange={e => setCatUpNote(e.target.value)} placeholder="Ej: operación especial, dirección..." /></div>
-            </div>
-          )}
-        </div>
-        <div className="tog-section" style={{ opacity: isLibranza ? 0.35 : 1, pointerEvents: isLibranza ? 'none' : undefined }}>
-          <label className="tog-label">
-            <input type="checkbox" checked={payCheck} onChange={e => setPayCheck(e.target.checked)} disabled={isLibranza} />
-            <span style={{ color: 'var(--teal)' }}>💰 Pagar minutos extra de esta jornada</span>
-          </label>
-          {payCheck && !isLibranza && (
-            <div className="tog-body">
-              <div className="fg" style={{ marginBottom: '.6rem' }}><label>Minutos extra a pagar</label><input type="number" value={payExt} min={0} step={15} onChange={e => setPayExt(e.target.value)} /></div>
-              {parseFloat(payExt) > 0 && (
-                <div style={{ fontSize: 12, color: 'var(--text2)', padding: '6px 8px', background: 'var(--bg4)', borderRadius: 6 }}>
-                  Se pagarán <b style={{ color: 'var(--purple)' }}>{payExt} min extra</b> → equiv. <b style={{ color: 'var(--teal)' }}>{fmt(Math.round(parseFloat(payExt) * 1.5))}</b> con ×1.5
+        {!isActor && (
+          <>
+            <div className="tog-section" style={{ opacity: isLibranza ? 0.35 : 1, pointerEvents: isLibranza ? 'none' : undefined }}>
+              <label className="tog-label">
+                <input type="checkbox" checked={special} onChange={e => setSpecial(e.target.checked)} disabled={isLibranza} />
+                <span style={{ color: 'var(--amber)' }}>⭐ Marcar como jornada especial (E)</span>
+              </label>
+              {special && !isLibranza && (
+                <div className="tog-body">
+                  <div className="fg" style={{ marginBottom: 0 }}><label>Nota para el empleado</label><input type="text" value={specialNote} onChange={e => setSpecialNote(e.target.value)} placeholder="Ej: rodaje festivo, guardia..." /></div>
                 </div>
               )}
             </div>
-          )}
-        </div>
+            <div className="tog-section" style={{ opacity: isLibranza ? 0.35 : 1, pointerEvents: isLibranza ? 'none' : undefined }}>
+              <label className="tog-label">
+                <input type="checkbox" checked={catUp} onChange={e => setCatUp(e.target.checked)} disabled={isLibranza} />
+                <span style={{ color: 'var(--purple)' }}>⬆ Subida de categoría (X)</span>
+              </label>
+              {catUp && !isLibranza && (
+                <div className="tog-body">
+                  <div className="fg" style={{ marginBottom: 0 }}><label>Motivo / categoría aplicada</label><input type="text" value={catUpNote} onChange={e => setCatUpNote(e.target.value)} placeholder="Ej: operación especial, dirección..." /></div>
+                </div>
+              )}
+            </div>
+            <div className="tog-section" style={{ opacity: isLibranza ? 0.35 : 1, pointerEvents: isLibranza ? 'none' : undefined }}>
+              <label className="tog-label">
+                <input type="checkbox" checked={payCheck} onChange={e => setPayCheck(e.target.checked)} disabled={isLibranza} />
+                <span style={{ color: 'var(--teal)' }}>💰 Pagar minutos extra de esta jornada</span>
+              </label>
+              {payCheck && !isLibranza && (
+                <div className="tog-body">
+                  <div className="fg" style={{ marginBottom: '.6rem' }}><label>Minutos extra a pagar</label><input type="number" value={payExt} min={0} step={15} onChange={e => setPayExt(e.target.value)} /></div>
+                  {parseFloat(payExt) > 0 && (
+                    <div style={{ fontSize: 12, color: 'var(--text2)', padding: '6px 8px', background: 'var(--bg4)', borderRadius: 6 }}>
+                      Se pagarán <b style={{ color: 'var(--purple)' }}>{payExt} min extra</b> → equiv. <b style={{ color: 'var(--teal)' }}>{fmt(Math.round(parseFloat(payExt) * 1.5))}</b> con ×1.5
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
         {/* Historial de cambios */}
         <div style={{ borderTop: '1px solid var(--border2)', marginTop: '1rem', paddingTop: '1rem' }}>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '.6rem' }}>

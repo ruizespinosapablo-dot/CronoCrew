@@ -39,7 +39,8 @@ export default function EditEmployeeModal({ empId, onClose }) {
 
   if (!emp) return null;
 
-  const citedNet = start && end ? (t2m(end) - t2m(start)) - parseInt(brk) : null;
+  const isActor = dept === 'Actores';
+  const citedNet = !isActor && start && end ? (t2m(end) - t2m(start)) - parseInt(brk) : null;
 
   const handleSave = () => {
     const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -76,12 +77,14 @@ export default function EditEmployeeModal({ empId, onClose }) {
             </select>
           </div>
         </div>
+        {!isActor && (
+          <div className="frow">
+            <div className="fg"><label>Entrada asignada</label><input type="time" value={start} onChange={e => setStart(e.target.value)} /></div>
+            <div className="fg"><label>Salida asignada</label><input type="time" value={end} onChange={e => setEnd(e.target.value)} /></div>
+          </div>
+        )}
         <div className="frow">
-          <div className="fg"><label>Entrada asignada</label><input type="time" value={start} onChange={e => setStart(e.target.value)} /></div>
-          <div className="fg"><label>Salida asignada</label><input type="time" value={end} onChange={e => setEnd(e.target.value)} /></div>
-        </div>
-        <div className="frow">
-          <div className="fg"><label>Descanso (min)</label><input type="number" value={brk} min={0} step={15} onChange={e => setBrk(e.target.value)} /></div>
+          {!isActor && <div className="fg"><label>Descanso (min)</label><input type="number" value={brk} min={0} step={15} onChange={e => setBrk(e.target.value)} /></div>}
           <div className="fg"><label>Horas/día contrato</label><input type="number" value={ch} min={1} step={0.5} onChange={e => setCh(e.target.value)} /></div>
         </div>
         {citedNet !== null && (
@@ -90,6 +93,11 @@ export default function EditEmployeeModal({ empId, onClose }) {
               <span style={{ color: 'var(--text3)' }}>Netas citadas: <b style={{ color: 'var(--accent)' }}>{fmt(citedNet)}</b></span>
               <span style={{ color: 'var(--text3)' }}>Contrato: <b style={{ color: 'var(--teal)' }}>{ch}h</b></span>
             </div>
+          </div>
+        )}
+        {isActor && (
+          <div style={{ fontSize: 12, color: 'var(--text3)', padding: '.5rem .75rem', background: 'var(--bg3)', borderRadius: 8, marginBottom: '.5rem' }}>
+            Actor — sus jornadas se registran día a día. Solo se configura la jornada contractual en horas.
           </div>
         )}
         <div className="frow">

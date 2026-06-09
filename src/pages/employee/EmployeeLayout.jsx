@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import logo from '../../assets/logo.svg';
 import Clock from './Clock';
+import ActorClock from './ActorClock';
 import Hours from './Hours';
 import History from './History';
 import Leave from './Leave';
@@ -51,7 +52,7 @@ export default function EmployeeLayout() {
         </div>
 
         <div className="main">
-          {page === 'fich' && <Clock emp={emp} />}
+          {page === 'fich' && (emp.dept === 'Actores' ? <ActorClock emp={emp} /> : <Clock emp={emp} />)}
           {page === 'hrs'  && <Hours emp={emp} />}
           {page === 'hist' && <History emp={emp} />}
           {page === 'perm' && <Leave emp={emp} />}
