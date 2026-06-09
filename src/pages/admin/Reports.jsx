@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { calcPeriod, calcRec, fmt, fmtDate } from '../../lib/utils';
+import { calcPeriod, fmt, fmtDate } from '../../lib/utils';
 import { DEPARTMENTS } from '../../lib/data';
 import PayModal from '../../components/modals/PayModal';
 
@@ -54,32 +54,26 @@ export default function Reports() {
       <div className="ph">
         <div><h1>Informes de horas</h1><p>Desglose por empleado y período</p></div>
         <button className="btn-accent" onClick={() => {
-          const visibleRecs = recs.filter(r => {
-            const emp = emps.find(e => e.id === r.eid);
-            if (!emp) return false;
-            if (filterDept && emp.dept !== filterDept) return false;
-            if (filterEmp && r.eid !== filterEmp) return false;
-            if (dateFrom && r.date < dateFrom) return false;
-            if (dateTo && r.date > dateTo) return false;
-            return true;
-          });
           const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-          const rows = [
-            ['Empleado', 'Departamento', 'Fecha', 'Entrada', 'Salida', 'Descanso (min)', 'Horas netas', 'Total día', 'Estado'].map(escape).join(','),
-            ...visibleRecs.sort((a, b) => a.date.localeCompare(b.date)).map(r => {
-              const emp = emps.find(e => e.id === r.eid);
-              const c = (r.entry && r.exit) ? calcRec(r, emp) : null;
-              return [
-                emp?.name ?? r.eid, emp?.dept ?? '', r.date,
-                r.entry || '', r.exit || '', r.brk ?? '',
-                c ? Math.round(c.net) : '', c ? Math.round(c.total) : '',
-                r.status === 'approved' ? 'Aprobado' : 'Pendiente',
-              ].map(escape).join(',');
-            }),
-          ];
+          const allRows = [];
+          visibleEmps.forEach(emp => {
+            const empPaid = paid.filter(p => p.eid === emp.id && (!dateFrom || p.date >= dateFrom) && (!dateTo || p.date <= dateTo));
+            const specRecs = recs.filter(r => r.eid === emp.id && r.special && (!dateFrom || r.date >= dateFrom) && (!dateTo || r.date <= dateTo));
+            const catUpRecs = recs.filter(r => r.eid === emp.id && r.catUp && (!dateFrom || r.date >= dateFrom) && (!dateTo || r.date <= dateTo));
+            const items = [];
+            empPaid.forEach(p => {
+              if (showExt && p.extMin > 0) items.push({ type: 'Extras pagadas', date: p.date, note: p.note, amount: fmtMin(p.extMin) });
+              if (showOrd && p.ordMin > 0) items.push({ type: 'Horas ordinarias pagadas', date: p.date, note: p.note, amount: fmtMin(p.ordMin) });
+            });
+            if (showSpecial) specRecs.forEach(r => items.push({ type: 'Jornada especial', date: r.date, note: r.specialNote, amount: '' }));
+            if (showCatUp)   catUpRecs.forEach(r => items.push({ type: 'Subida de categoría', date: r.date, note: r.catUpNote, amount: '' }));
+            items.sort((a, b) => a.date.localeCompare(b.date));
+            items.forEach(item => allRows.push([emp.name, emp.dept, item.date, item.type, item.note || '', item.amount].map(escape).join(',')));
+          });
+          const rows = [['Empleado', 'Departamento', 'Fecha', 'Tipo', 'Nota', 'Cantidad'].map(escape).join(','), ...allRows];
           const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href = url; a.download = 'cronocrew_registros.csv'; a.click();
+          const a = document.createElement('a'); a.href = url; a.download = 'cronocrew_pagos.csv'; a.click();
           URL.revokeObjectURL(url);
         }}><i className="ti ti-download" /> Exportar CSV</button>
       </div>

@@ -43,7 +43,30 @@ export default function Records() {
 
   return (
     <>
-      <div className="ph"><div><h1>Registro de fichajes</h1><p>Revisión y aprobación</p></div></div>
+      <div className="ph">
+        <div><h1>Registro de fichajes</h1><p>Revisión y aprobación</p></div>
+        <button className="btn-accent" onClick={() => {
+          const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+          const rows = [
+            ['Empleado', 'Departamento', 'Fecha', 'Entrada', 'Salida', 'Descanso (min)', 'Netas', 'Total día', 'Estado', 'Obs.'].map(escape).join(','),
+            ...filtered.map(r => {
+              const emp = emps.find(e => e.id === r.eid);
+              const c = (r.entry && r.exit) ? calcRec(r, emp) : null;
+              return [
+                emp?.name ?? r.eid, emp?.dept ?? '', r.date,
+                r.entry || '', r.exit || '', r.brk ?? '',
+                c ? Math.round(c.net) : '', c ? Math.round(c.total) : '',
+                r.status === 'approved' ? 'Aprobado' : 'Pendiente',
+                r.obs || '',
+              ].map(escape).join(',');
+            }),
+          ];
+          const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = 'cronocrew_registros.csv'; a.click();
+          URL.revokeObjectURL(url);
+        }}><i className="ti ti-download" /> Exportar CSV</button>
+      </div>
       <div className="fb">
         <select value={filterDept} onChange={e => { handleFilter(() => { setFilterDept(e.target.value); setFilterEmp(''); }); }}>
           <option value="">Todos los departamentos</option>
