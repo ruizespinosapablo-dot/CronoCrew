@@ -106,8 +106,21 @@ export function AppProvider({ children }) {
         const { data: empsData, error: empsErr } = await supabase.from('emps').select('*');
         if (empsErr) throw empsErr;
 
+        const fetchAllRecs = async () => {
+          const PAGE = 1000;
+          let all = [], from = 0;
+          while (true) {
+            const { data, error } = await supabase.from('recs').select('*').is('deleted_at', null).range(from, from + PAGE - 1);
+            if (error) throw error;
+            all = all.concat(data);
+            if (data.length < PAGE) break;
+            from += PAGE;
+          }
+          return all;
+        };
+
         const [recsData, paidData, festivosData, reqsData, permsData] = await Promise.all([
-          supabase.from('recs').select('*').is('deleted_at', null).limit(10000).then(({ data, error }) => { if (error) throw error; return data; }),
+          fetchAllRecs(),
           supabase.from('paid').select('*').then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('festivos').select('*').order('date').then(({ data, error }) => { if (error) throw error; return data; }),
           supabase.from('requests').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
