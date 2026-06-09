@@ -4,14 +4,24 @@ import logo from '../assets/logo.svg';
 
 export default function Login() {
   const { login } = useApp();
-  const [user, setUser] = useState('');
-  const [pass, setPass] = useState('');
-  const [error, setError] = useState(false);
+  const [email, setEmail]   = useState('');
+  const [pass, setPass]     = useState('');
+  const [error, setError]   = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    setError(false);
-    if (!login(user.trim(), pass)) setError(true);
+  const handleLogin = async () => {
+    if (!email.trim() || !pass) { setError('Introduce tu email y contraseña.'); return; }
+    setError('');
+    setLoading(true);
+    const err = await login(email.trim(), pass);
+    if (err) {
+      setError('Email o contraseña incorrectos.');
+      setLoading(false);
+    }
+    // Si no hay error, onAuthStateChange dispara SIGNED_IN y la app cambia de pantalla
   };
+
+  const onKey = (e) => { if (e.key === 'Enter') handleLogin(); };
 
   return (
     <div className="login-screen">
@@ -23,16 +33,17 @@ export default function Login() {
         <h2>Bienvenido</h2>
         <p>Sistema de gestión horaria — Producción Audiovisual</p>
         <div className="fg">
-          <label>Usuario</label>
+          <label>Email</label>
           <input
-            type="text"
-            placeholder="tu.usuario"
-            value={user}
-            onChange={e => setUser(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            type="email"
+            placeholder="tu@email.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={onKey}
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
+            disabled={loading}
           />
         </div>
         <div className="fg">
@@ -42,11 +53,14 @@ export default function Login() {
             placeholder="••••••••"
             value={pass}
             onChange={e => setPass(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            onKeyDown={onKey}
+            disabled={loading}
           />
         </div>
-        {error && <p className="err-msg">Usuario o contraseña incorrectos.</p>}
-        <button className="btn-primary" onClick={handleLogin}>Entrar</button>
+        {error && <p className="err-msg">{error}</p>}
+        <button className="btn-primary" onClick={handleLogin} disabled={loading}>
+          {loading ? 'Entrando…' : 'Entrar'}
+        </button>
       </div>
     </div>
   );

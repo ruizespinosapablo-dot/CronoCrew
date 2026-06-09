@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { USERS } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { useToast } from './ToastContext';
 import { t2m } from '../lib/utils';
@@ -123,7 +122,8 @@ const toPermRow = p => ({
 
 export function AppProvider({ children }) {
   const { showToast } = useToast();
-  const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [dbError, setDbError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const currentUserRef = useRef(null);
@@ -135,76 +135,121 @@ export function AppProvider({ children }) {
   const [empRequests, setEmpRequests] = useState([]);
   const [expressLinks, setExpressLinks] = useState([]);
 
+  // ── Carga de datos (se llama tras confirmar sesión) ──────────────────────
+  const loadData = useCallback(async () => {
+    if (!supabase) {
+      setDbError('La conexión con la base de datos no está configurada. Revisa las variables de entorno VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
+      return;
+    }
+    setLoading(true);
+    setDbError(null);
+    try {
+      const { data: empsData, error: empsErr } = await supabase.from('emps').select('*');
+      if (empsErr) throw empsErr;
+
+      const fetchAllRecs = async () => {
+        const PAGE = 1000;
+        let all = [], from = 0;
+        while (true) {
+          const { data, error } = await supabase.from('recs').select('*').is('deleted_at', null).range(from, from + PAGE - 1);
+          if (error) throw error;
+          all = all.concat(data);
+          if (data.length < PAGE) break;
+          from += PAGE;
+        }
+        return all;
+      };
+
+      const [recsData, paidData, festivosData, reqsData, permsData, expressData] = await Promise.all([
+        fetchAllRecs(),
+        supabase.from('paid').select('*').then(({ data, error }) => { if (error) throw error; return data; }),
+        supabase.from('festivos').select('*').order('date').then(({ data, error }) => { if (error) throw error; return data; }),
+        supabase.from('requests').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
+        supabase.from('admin_perms').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
+        supabase.from('express_links').select('*').neq('status', 'imported').order('created_at', { ascending: false }).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
+      ]);
+
+      setEmps(empsData.map(mapEmp));
+      setRecs(recsData.map(mapRec));
+      setPaid(paidData.map(mapPaid));
+      setFestivos(festivosData);
+      setEmpRequests(reqsData.map(mapReq));
+      setAdminPerms(permsData.map(mapPerm));
+      setExpressLinks(expressData.map(mapExpressLink));
+
+      // Realtime: cuando un trabajador ficha, el admin lo ve al instante
+      supabase.channel('express_links_watch')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'express_links' }, ({ new: row }) => {
+          setExpressLinks(prev => prev.map(l => l.id === row.id ? mapExpressLink(row) : l));
+        })
+        .subscribe();
+    } catch (err) {
+      console.error('Error cargando datos desde Supabase:', err);
+      setDbError(err.message || 'Error de conexión');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ── Auth: inicializar sesión con Supabase Auth ───────────────────────────
   useEffect(() => {
-    (async () => {
-      if (!supabase) {
-        setDbError('La conexión con la base de datos no está configurada. Revisa las variables de entorno VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
-        setLoading(false);
+    if (!supabase) { setAuthChecked(true); return; }
+
+    const resolveSession = async (session) => {
+      if (!session) {
+        setCurrentUser(null);
+        currentUserRef.current = null;
+        setAuthChecked(true);
         return;
       }
-      try {
-        const { data: empsData, error: empsErr } = await supabase.from('emps').select('*');
-        if (empsErr) throw empsErr;
-
-        const fetchAllRecs = async () => {
-          const PAGE = 1000;
-          let all = [], from = 0;
-          while (true) {
-            const { data, error } = await supabase.from('recs').select('*').is('deleted_at', null).range(from, from + PAGE - 1);
-            if (error) throw error;
-            all = all.concat(data);
-            if (data.length < PAGE) break;
-            from += PAGE;
-          }
-          return all;
-        };
-
-        const [recsData, paidData, festivosData, reqsData, permsData, expressData] = await Promise.all([
-          fetchAllRecs(),
-          supabase.from('paid').select('*').then(({ data, error }) => { if (error) throw error; return data; }),
-          supabase.from('festivos').select('*').order('date').then(({ data, error }) => { if (error) throw error; return data; }),
-          supabase.from('requests').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
-          supabase.from('admin_perms').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
-          supabase.from('express_links').select('*').neq('status', 'imported').order('created_at', { ascending: false }).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
-        ]);
-
-        setEmps(empsData.map(mapEmp));
-        setRecs(recsData.map(mapRec));
-        setPaid(paidData.map(mapPaid));
-        setFestivos(festivosData);
-        setEmpRequests(reqsData.map(mapReq));
-        setAdminPerms(permsData.map(mapPerm));
-        setExpressLinks(expressData.map(mapExpressLink));
-
-        // Realtime: cuando un trabajador ficha, el admin lo ve al instante
-        supabase.channel('express_links_watch')
-          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'express_links' }, ({ new: row }) => {
-            setExpressLinks(prev => prev.map(l => l.id === row.id ? mapExpressLink(row) : l));
-          })
-          .subscribe();
-      } catch (err) {
-        console.error('Error cargando datos desde Supabase:', err);
-        setDbError(err.message || 'Error de conexión');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  const login = useCallback((username, password) => {
-    const user = USERS[username];
-    if (user && user.pass === password) {
-      const u = { username, role: user.role, eid: user.eid || null };
+      // Obtener perfil del usuario
+      const { data: profile } = await supabase
+        .from('profiles').select('*').eq('id', session.user.id).single();
+      const u = {
+        id: session.user.id,
+        email: session.user.email,
+        username: session.user.email,
+        displayName: profile?.name || session.user.email.split('@')[0],
+        role: ['super_admin', 'admin'].includes(profile?.role) ? 'admin' : 'user',
+        eid: profile?.eid || null,
+      };
       setCurrentUser(u);
       currentUserRef.current = u;
-      return true;
-    }
-    return false;
+      setAuthChecked(true);
+    };
+
+    // INITIAL_SESSION se dispara inmediatamente con la sesión actual (o null)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'INITIAL_SESSION') {
+        await resolveSession(session);
+      } else if (event === 'SIGNED_IN') {
+        await resolveSession(session);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        currentUserRef.current = null;
+        setEmps([]); setRecs([]); setPaid([]);
+        setFestivos([]); setEmpRequests([]); setAdminPerms([]); setExpressLinks([]);
+        setDbError(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const logout = useCallback(() => {
-    setCurrentUser(null);
-    currentUserRef.current = null;
+  // ── Cargar datos cuando hay usuario confirmado ───────────────────────────
+  useEffect(() => {
+    if (authChecked && currentUser) loadData();
+  }, [authChecked, currentUser?.id]);
+
+  // ── Login / Logout ────────────────────────────────────────────────────────
+  const login = useCallback(async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return error.message;
+    return null; // éxito → onAuthStateChange dispara SIGNED_IN
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
   }, []);
 
   const sb = (promise) => promise.then(({ error }) => {
@@ -469,11 +514,12 @@ export function AppProvider({ children }) {
     });
   }, []);
 
-  if (loading) {
+  // Mostrar spinner mientras se comprueba auth o se cargan datos tras login
+  if (!authChecked || (currentUser && loading)) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg1)', color: 'var(--text1)', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontSize: 24 }}>⏳</div>
-        <div style={{ fontSize: 15, color: 'var(--text2)' }}>Cargando datos…</div>
+        <div style={{ fontSize: 15, color: 'var(--text2)' }}>{!authChecked ? 'Iniciando…' : 'Cargando datos…'}</div>
       </div>
     );
   }
