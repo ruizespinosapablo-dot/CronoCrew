@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DEPARTMENTS } from '../../lib/data';
+import { useEnterKey } from '../../lib/useEnterKey';
 
 export default function NewEmployeeModal({ onClose }) {
   const { addEmp } = useApp();
@@ -32,6 +33,7 @@ export default function NewEmployeeModal({ onClose }) {
     });
     onClose();
   };
+  useEnterKey(handleCreate);
 
   return (
     <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && onClose()}>

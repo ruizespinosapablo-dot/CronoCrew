@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { calcPeriod, fmt } from '../../lib/utils';
+import { useEnterKey } from '../../lib/useEnterKey';
 
 export default function PayModal({ empId: initialEmpId, onClose }) {
   const { emps, recs, paid, addPaid } = useApp();
@@ -23,6 +24,7 @@ export default function PayModal({ empId: initialEmpId, onClose }) {
     addPaid({ eid, month: today.slice(0, 7), ordMin: Math.round(parseFloat(ord) * 60), extMin: parseFloat(ext), note: note || 'Pago registrado' });
     onClose();
   };
+  useEnterKey(handleSave);
 
   return (
     <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && onClose()}>

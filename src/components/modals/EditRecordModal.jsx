@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
 import { calcRec, fmt, fmtDate } from '../../lib/utils';
+import { useEnterKey } from '../../lib/useEnterKey';
 
 const ACTION_LABEL = { create: '✅ Creado', update: '✏️ Modificado', delete: '🚫 Anulado' };
 const ACTION_COLOR = { create: 'var(--teal)', update: 'var(--amber)', delete: 'var(--coral)' };
@@ -115,6 +116,7 @@ export default function EditRecordModal({ recId, onClose }) {
     }
     onClose();
   };
+  useEnterKey(handleSave);
 
   return (
     <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && onClose()}>

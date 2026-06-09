@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { fmtDate } from '../../lib/utils';
+import { useEnterKey } from '../../lib/useEnterKey';
 
 export default function EditDayModal({ empId, date, onClose }) {
   const { recs, emps, upsertRec } = useApp();
@@ -44,6 +45,7 @@ export default function EditDayModal({ empId, date, onClose }) {
     });
     onClose();
   };
+  useEnterKey(handleSave);
 
   return (
     <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && onClose()}>
