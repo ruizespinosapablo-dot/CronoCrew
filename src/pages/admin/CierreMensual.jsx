@@ -54,7 +54,7 @@ function calcNomina(emp, extMinutes, year, month) {
   };
 }
 
-const € = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+const fmtEur = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 const pct = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
 
 function exportCSV(rows, monthLabel) {
@@ -198,21 +198,21 @@ export default function CierreMensual() {
                         {dias}/{total}
                         {dias < total && <span style={{ display: 'block', fontSize: 10, color: 'var(--by)' }}>pro-rata</span>}
                       </td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13 }}>{€(calc.brutoFijo)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13 }}>{fmtEur(calc.brutoFijo)}</td>
                       <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, color: calc.extrasBruto > 0 ? 'var(--purple)' : 'var(--text3)' }}>
-                        {calc.extrasBruto > 0 ? €(calc.extrasBruto) : '—'}
+                        {calc.extrasBruto > 0 ? fmtEur(calc.extrasBruto) : '—'}
                         {calc.extMinutes > 0 && calc.extrasBruto === 0 && (
                           <span style={{ display: 'block', fontSize: 10, color: 'var(--coral)' }}>sin tarifa</span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>{€(calc.devengado)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--coral)' }}>−{€(calc.ssTrab)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>{fmtEur(calc.devengado)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--coral)' }}>−{fmtEur(calc.ssTrab)}</td>
                       <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--coral)' }}>
-                        −{€(calc.irpf)}
+                        −{fmtEur(calc.irpf)}
                         <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)' }}>{pct(emp.irpfPct || 0)}</span>
                       </td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: 'var(--teal)' }}>{€(calc.neto)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--text2)' }}>{€(calc.costeEmp)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: 'var(--teal)' }}>{fmtEur(calc.neto)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--text2)' }}>{fmtEur(calc.costeEmp)}</td>
                     </tr>
                   );
                 })}
@@ -222,11 +222,11 @@ export default function CierreMensual() {
                   <td colSpan={2} style={{ fontSize: 13, color: 'var(--text2)' }}>{rows.length} empleados</td>
                   <td />
                   <td />
-                  <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{€(totals.devengado)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--coral)' }}>−{€(totals.ssTrab)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--coral)' }}>−{€(totals.irpf)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--teal)', fontSize: 15 }}>{€(totals.neto)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{€(totals.costeEmp)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{fmtEur(totals.devengado)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--coral)' }}>−{fmtEur(totals.ssTrab)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--coral)' }}>−{fmtEur(totals.irpf)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--teal)', fontSize: 15 }}>{fmtEur(totals.neto)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{fmtEur(totals.costeEmp)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -235,12 +235,12 @@ export default function CierreMensual() {
           {/* Resumen */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
             {[
-              { label: 'Total devengado', value: €(totals.devengado), color: 'var(--text)' },
-              { label: 'SS trabajadores', value: '−' + €(totals.ssTrab), color: 'var(--coral)' },
-              { label: 'IRPF retenido', value: '−' + €(totals.irpf), color: 'var(--coral)' },
-              { label: 'Total neto a pagar', value: €(totals.neto), color: 'var(--teal)', bold: true },
-              { label: 'SS empresa', value: €(totals.ssEmp), color: 'var(--text2)' },
-              { label: 'Coste total empresa', value: €(totals.costeEmp), color: 'var(--accent)', bold: true },
+              { label: 'Total devengado', value: fmtEur(totals.devengado), color: 'var(--text)' },
+              { label: 'SS trabajadores', value: '−' + fmtEur(totals.ssTrab), color: 'var(--coral)' },
+              { label: 'IRPF retenido', value: '−' + fmtEur(totals.irpf), color: 'var(--coral)' },
+              { label: 'Total neto a pagar', value: fmtEur(totals.neto), color: 'var(--teal)', bold: true },
+              { label: 'SS empresa', value: fmtEur(totals.ssEmp), color: 'var(--text2)' },
+              { label: 'Coste total empresa', value: fmtEur(totals.costeEmp), color: 'var(--accent)', bold: true },
             ].map(card => (
               <div key={card.label} className="card-section" style={{ padding: '1rem', textAlign: 'center' }}>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>{card.label}</div>
@@ -271,12 +271,12 @@ export default function CierreMensual() {
                   {rows.map(({ emp, calc }) => (
                     <tr key={emp.id}>
                       <td style={{ fontWeight: 600 }}>{emp.name}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12 }}>{€(calc.baseSS)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--coral)' }}>{€(calc.ssTrab)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--text2)' }}>{€(calc.ssEmp)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12 }}>{€(calc.baseIRPF)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12 }}>{fmtEur(calc.baseSS)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--coral)' }}>{fmtEur(calc.ssTrab)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--text2)' }}>{fmtEur(calc.ssEmp)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12 }}>{fmtEur(calc.baseIRPF)}</td>
                       <td style={{ textAlign: 'right', fontSize: 12, color: 'var(--text2)' }}>{pct(emp.irpfPct || 0)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--coral)' }}>{€(calc.irpf)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--coral)' }}>{fmtEur(calc.irpf)}</td>
                     </tr>
                   ))}
                 </tbody>
