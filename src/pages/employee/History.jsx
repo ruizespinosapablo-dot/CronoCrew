@@ -94,9 +94,13 @@ export default function History({ emp }) {
                 if (c.comp > 0) parts.push(<span key="c" style={{ color: 'var(--coral)' }}>−{fmt(c.comp)}</span>);
                 if (c.accum > 0) parts.push(<span key="a" style={{ color: 'var(--teal)' }}>+{fmt(c.accum)}</span>);
                 if (remainingExtra > 0) parts.push(<span key="e" style={{ color: 'var(--purple)' }}>+{fmt(remainingExtra)} ext</span>);
-                if (dayPaidExtMin > 0) parts.push(<span key="pe" style={{ color: 'var(--amber)' }}>💰−{fmt(Math.round(dayPaidExtMin * 1.5))}</span>);
-                if (dayPaidOrdMin > 0) parts.push(<span key="po" style={{ color: 'var(--amber)' }}>💰−{fmt(dayPaidOrdMin)} ord</span>);
-                saldoEl = parts.length ? <>{parts.map((p, idx) => <span key={idx}>{p} </span>)}</> : <span style={{ color: 'var(--text3)' }}>0</span>;
+                saldoEl = (
+                  <>
+                    {parts.length ? parts.map((p, idx) => <span key={idx}>{p} </span>) : <span style={{ color: 'var(--text3)' }}>0</span>}
+                    {dayPaidExtMin > 0 && <span className="b bp" style={{ fontSize: 10, marginLeft: 4 }}>💰{fmt(dayPaidExtMin)}</span>}
+                    {dayPaidOrdMin > 0 && <span className="b bp" style={{ fontSize: 10, marginLeft: 4 }}>💰{fmt(dayPaidOrdMin)} ord</span>}
+                  </>
+                );
               }
               return (
                 <tr key={ds} style={isT ? { outline: '1px solid rgba(232,255,71,.25)' } : {}}>
