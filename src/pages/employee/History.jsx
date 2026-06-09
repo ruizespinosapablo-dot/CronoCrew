@@ -88,10 +88,10 @@ export default function History({ emp }) {
               const lib = rec.libranza;
               const remainingExtra = Math.max(0, (c?.extra ?? 0) - dayPaidExtMin);
               let saldoEl = <span>—</span>;
-              if (lib) saldoEl = <span style={{ color: 'var(--coral)' }}>−{fmt(emp.ch * 60)}</span>;
+              if (lib) saldoEl = <span style={{ color: 'var(--teal)' }}>−{fmt(emp.ch * 60)}</span>;
               else if (rec.exit && c) {
                 const parts = [];
-                if (c.comp > 0) parts.push(<span key="c" style={{ color: 'var(--coral)' }}>−{fmt(c.comp)}</span>);
+                if (c.comp > 0) parts.push(<span key="c" style={{ color: 'var(--teal)' }}>−{fmt(c.comp)}</span>);
                 if (c.accum > 0) parts.push(<span key="a" style={{ color: 'var(--teal)' }}>+{fmt(c.accum)}</span>);
                 if (remainingExtra > 0) parts.push(<span key="e" style={{ color: 'var(--purple)' }}>+{fmt(remainingExtra)} ext</span>);
                 saldoEl = (
