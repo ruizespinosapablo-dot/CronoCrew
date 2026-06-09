@@ -136,7 +136,7 @@ export function AppProvider({ children }) {
   const [expressLinks, setExpressLinks] = useState([]);
 
   // ── Carga de datos (se llama tras confirmar sesión) ──────────────────────
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (productionId = null) => {
     if (!supabase) {
       setDbError('La conexión con la base de datos no está configurada. Revisa las variables de entorno VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
       return;
@@ -144,14 +144,17 @@ export function AppProvider({ children }) {
     setLoading(true);
     setDbError(null);
     try {
-      const { data: empsData, error: empsErr } = await supabase.from('emps').select('*');
+      // Helper: añade filtro de producción si existe
+      const withProd = (query) => productionId ? query.eq('production_id', productionId) : query;
+
+      const { data: empsData, error: empsErr } = await withProd(supabase.from('emps').select('*'));
       if (empsErr) throw empsErr;
 
       const fetchAllRecs = async () => {
         const PAGE = 1000;
         let all = [], from = 0;
         while (true) {
-          const { data, error } = await supabase.from('recs').select('*').is('deleted_at', null).range(from, from + PAGE - 1);
+          const { data, error } = await withProd(supabase.from('recs').select('*').is('deleted_at', null)).range(from, from + PAGE - 1);
           if (error) throw error;
           all = all.concat(data);
           if (data.length < PAGE) break;
@@ -162,11 +165,11 @@ export function AppProvider({ children }) {
 
       const [recsData, paidData, festivosData, reqsData, permsData, expressData] = await Promise.all([
         fetchAllRecs(),
-        supabase.from('paid').select('*').then(({ data, error }) => { if (error) throw error; return data; }),
-        supabase.from('festivos').select('*').order('date').then(({ data, error }) => { if (error) throw error; return data; }),
-        supabase.from('requests').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
-        supabase.from('admin_perms').select('*').then(({ data, error }) => { if (error) throw error; return data ?? []; }),
-        supabase.from('express_links').select('*').neq('status', 'imported').order('created_at', { ascending: false }).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
+        withProd(supabase.from('paid').select('*')).then(({ data, error }) => { if (error) throw error; return data; }),
+        withProd(supabase.from('festivos').select('*').order('date')).then(({ data, error }) => { if (error) throw error; return data; }),
+        withProd(supabase.from('requests').select('*')).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
+        withProd(supabase.from('admin_perms').select('*')).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
+        withProd(supabase.from('express_links').select('*').neq('status', 'imported').order('created_at', { ascending: false })).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
       ]);
 
       setEmps(empsData.map(mapEmp));
@@ -212,6 +215,8 @@ export function AppProvider({ children }) {
         displayName: profile?.name || session.user.email.split('@')[0],
         role: ['super_admin', 'admin'].includes(profile?.role) ? 'admin' : 'user',
         eid: profile?.eid || null,
+        productionId: profile?.production_id || null,
+        companyId: profile?.company_id || null,
       };
       setCurrentUser(u);
       currentUserRef.current = u;
@@ -238,7 +243,7 @@ export function AppProvider({ children }) {
 
   // ── Cargar datos cuando hay usuario confirmado ───────────────────────────
   useEffect(() => {
-    if (authChecked && currentUser) loadData();
+    if (authChecked && currentUser) loadData(currentUser.productionId);
   }, [authChecked, currentUser?.id]);
 
   // ── Login / Logout ────────────────────────────────────────────────────────
@@ -289,8 +294,9 @@ export function AppProvider({ children }) {
   }, []);
 
   const addRec = useCallback((rec) => {
+    const prodId = currentUserRef.current?.productionId;
     setRecs(prev => [...prev, rec]);
-    sb(supabase.from('recs').insert(toRecRow(rec)));
+    sb(supabase.from('recs').insert({ ...toRecRow(rec), ...(prodId ? { production_id: prodId } : {}) }));
     logAudit(rec.id, 'create', null, toRecRow(rec));
   }, []);
 
@@ -330,11 +336,13 @@ export function AppProvider({ children }) {
   }, []);
 
   const addEmp = useCallback((emp) => {
+    const prodId = currentUserRef.current?.productionId;
     setEmps(prev => [...prev, emp]);
-    sb(supabase.from('emps').insert(toEmpRow(emp)));
+    sb(supabase.from('emps').insert({ ...toEmpRow(emp), ...(prodId ? { production_id: prodId } : {}) }));
   }, []);
 
   const upsertPaid = useCallback((entry) => {
+    const prodId = currentUserRef.current?.productionId;
     setPaid(prev => {
       const existing = prev.find(p => p.eid === entry.eid && p.date === entry.date);
       if (existing?._dbId) {
@@ -342,7 +350,7 @@ export function AppProvider({ children }) {
         return prev.map(p => p.eid === entry.eid && p.date === entry.date ? { ...entry, _dbId: p._dbId } : p);
       }
       supabase.from('paid')
-        .insert({ eid: entry.eid, date: entry.date, month: entry.month, ord_min: entry.ordMin || 0, ext_min: entry.extMin || 0, note: entry.note || null })
+        .insert({ eid: entry.eid, date: entry.date, month: entry.month, ord_min: entry.ordMin || 0, ext_min: entry.extMin || 0, note: entry.note || null, ...(prodId ? { production_id: prodId } : {}) })
         .select().single()
         .then(({ data, error }) => {
           if (error) console.error('[Supabase paid insert]', error.message);
@@ -368,10 +376,11 @@ export function AppProvider({ children }) {
   }, []);
 
   const addPaid = useCallback((entry) => {
+    const prodId = currentUserRef.current?.productionId;
     const today = new Date().toISOString().slice(0, 10);
     const entryWithDate = { ...entry, date: entry.date || today };
     supabase.from('paid')
-      .insert({ eid: entryWithDate.eid, date: entryWithDate.date, month: entryWithDate.month, ord_min: entryWithDate.ordMin || 0, ext_min: entryWithDate.extMin || 0, note: entryWithDate.note || null })
+      .insert({ eid: entryWithDate.eid, date: entryWithDate.date, month: entryWithDate.month, ord_min: entryWithDate.ordMin || 0, ext_min: entryWithDate.extMin || 0, note: entryWithDate.note || null, ...(prodId ? { production_id: prodId } : {}) })
       .select().single()
       .then(({ data, error }) => {
         if (error) console.error('[Supabase addPaid]', error.message);
@@ -380,17 +389,19 @@ export function AppProvider({ children }) {
   }, []);
 
   const addAdminPerm = useCallback((perm) => {
+    const prodId = currentUserRef.current?.productionId;
     const withId = { ...perm, id: perm.id || crypto.randomUUID() };
     setAdminPerms(prev => [...prev, withId]);
-    sb(supabase.from('admin_perms').insert(toPermRow(withId)));
+    sb(supabase.from('admin_perms').insert({ ...toPermRow(withId), ...(prodId ? { production_id: prodId } : {}) }));
   }, []);
 
   const addFestivo = useCallback((festivo) => {
+    const prodId = currentUserRef.current?.productionId;
     setFestivos(prev => {
       if (prev.find(f => f.date === festivo.date)) return prev;
       return [...prev, festivo].sort((a, b) => a.date.localeCompare(b.date));
     });
-    sb(supabase.from('festivos').insert({ date: festivo.date, name: festivo.name }));
+    sb(supabase.from('festivos').insert({ date: festivo.date, name: festivo.name, ...(prodId ? { production_id: prodId } : {}) }));
   }, []);
 
   const removeFestivo = useCallback((date) => {
@@ -399,11 +410,13 @@ export function AppProvider({ children }) {
   }, []);
 
   const addExpressLink = useCallback(async (link) => {
+    const prodId = currentUserRef.current?.productionId;
     const { data, error } = await supabase.from('express_links').insert({
       name: link.name, dni: link.dni || '', dept: link.dept || '',
       role: link.role || '', date: link.date,
       cited_in: link.citedIn, cited_out: link.citedOut,
       ch: link.ch, brk: link.brk,
+      ...(prodId ? { production_id: prodId } : {}),
     }).select().single();
     if (error) { showToast('Error al crear el enlace: ' + error.message, 'error'); return null; }
     setExpressLinks(prev => [mapExpressLink(data), ...prev]);
@@ -418,6 +431,7 @@ export function AppProvider({ children }) {
   }, [showToast]);
 
   const importExpressLink = useCallback(async (link, withPayment = false) => {
+    const prodId = currentUserRef.current?.productionId;
     // 1. Buscar o crear empleado
     let eid = emps.find(e => e.dni && e.dni === link.dni && link.dni)?.id;
     if (!eid) {
@@ -431,6 +445,7 @@ export function AppProvider({ children }) {
           link.name.split(' ').filter(Boolean).map(p => p[0].toUpperCase()).join('').slice(0, 2) || 'XX',
         color: '#6b7191', start_time: link.citedIn || '09:00', end_time: link.citedOut || '18:00',
         brk: link.brk || 60, ch: link.ch || 8, c_start: link.date, c_end: link.date,
+        ...(prodId ? { production_id: prodId } : {}),
       };
       const { error: empErr } = await supabase.from('emps').insert(empRow);
       if (empErr) { showToast('Error al crear empleado: ' + empErr.message, 'error'); return; }
@@ -449,6 +464,7 @@ export function AppProvider({ children }) {
       cited_in: link.citedIn, cited_out: link.citedOut,
       absence: null, libranza: false, special: false, cat_up: false,
       paid_extra: withPayment && extraMin > 0 ? extraMin : 0,
+      ...(prodId ? { production_id: prodId } : {}),
     };
     const { error: recErr } = await supabase.from('recs').upsert(recRow, { onConflict: 'id' });
     if (recErr) { showToast('Error al crear registro: ' + recErr.message, 'error'); return; }
@@ -458,7 +474,7 @@ export function AppProvider({ children }) {
     if (withPayment && extraMin > 0) {
       const month = link.date.slice(0, 7);
       const { data: paidData, error: paidErr } = await supabase.from('paid')
-        .insert({ eid, date: link.date, month, ord_min: 0, ext_min: extraMin, note: `Extras Fichaje Express · ${link.date}` })
+        .insert({ eid, date: link.date, month, ord_min: 0, ext_min: extraMin, note: `Extras Fichaje Express · ${link.date}`, ...(prodId ? { production_id: prodId } : {}) })
         .select().single();
       if (paidErr) console.error('[paid insert]', paidErr.message);
       else setPaid(prev => [...prev, mapPaid(paidData)]);
@@ -473,8 +489,9 @@ export function AppProvider({ children }) {
   }, [emps, showToast]);
 
   const addEmpRequest = useCallback((req) => {
+    const prodId = currentUserRef.current?.productionId;
     setEmpRequests(prev => [...prev, req]);
-    sb(supabase.from('requests').insert(toReqRow(req)));
+    sb(supabase.from('requests').insert({ ...toReqRow(req), ...(prodId ? { production_id: prodId } : {}) }));
   }, []);
 
   const updateEmpRequest = useCallback((id, changes) => {
