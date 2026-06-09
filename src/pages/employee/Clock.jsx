@@ -137,17 +137,19 @@ export default function Clock({ emp }) {
   const savePastDay = () => {
     if (!selectedPast) { showToast('Selecciona un día.', 'warning'); return; }
     const isFestivoPast = festivoSet.has(selectedPast);
+    const existingRec = recs.find(r => r.eid === emp.id && r.date === selectedPast);
+    const recId = existingRec?.id || crypto.randomUUID();
 
     if (pastType === 'festivo' || (isFestivoPast && pastType === 'festivo-no')) {
       upsertRec({
-        id: crypto.randomUUID(), eid: emp.id, date: selectedPast,
+        id: recId, eid: emp.id, date: selectedPast,
         entry: '', exit: '', brk: 0,
         obs: festivos.find(f => f.date === selectedPast)?.name || 'Festivo',
         status: 'pending', method: 'Manual', citedIn: emp.start, citedOut: emp.end, absence: 'festivo',
       });
     } else if (pastType === 'libranza') {
       upsertRec({
-        id: crypto.randomUUID(), eid: emp.id, date: selectedPast,
+        id: recId, eid: emp.id, date: selectedPast,
         entry: '', exit: '', brk: emp.brk,
         obs: 'Libranza', status: 'pending', method: 'Manual',
         citedIn: emp.start, citedOut: emp.end, libranza: true,
@@ -155,7 +157,7 @@ export default function Clock({ emp }) {
     } else {
       if (!pastEntry || !pastExit) { showToast('Indica entrada y salida.', 'warning'); return; }
       upsertRec({
-        id: crypto.randomUUID(), eid: emp.id, date: selectedPast,
+        id: recId, eid: emp.id, date: selectedPast,
         entry: pastEntry, exit: pastExit, brk: parseInt(pastBrk) || emp.brk,
         obs: pastObs, status: 'pending', method: 'Manual retroactivo',
         citedIn: emp.start, citedOut: emp.end,
