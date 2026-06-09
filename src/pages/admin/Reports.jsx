@@ -28,7 +28,7 @@ const TYPE_META = {
 };
 
 export default function Reports() {
-  const { emps, recs, paid, deletePaidById } = useApp();
+  const { emps, recs, paid, deletePaidById, updateRec } = useApp();
   const [filterEmp, setFilterEmp] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -127,10 +127,10 @@ export default function Reports() {
         const allItems = [];
         empPaid.forEach(p => {
           if (showExt && p.extMin > 0) allItems.push({ type: 'ext', date: p.date, note: p.note, amount: fmtMin(p.extMin), _dbId: p._dbId });
-          if (showOrd && p.ordMin > 0) allItems.push({ type: 'ord', date: p.date, note: p.note, amount: fmt(p.ordMin),    _dbId: p._dbId });
+          if (showOrd && p.ordMin > 0) allItems.push({ type: 'ord', date: p.date, note: p.note, amount: fmtMin(p.ordMin), _dbId: p._dbId });
         });
         if (showSpecial) specRecs.forEach(r => allItems.push({ type: 'special', date: r.date, note: r.specialNote }));
-        if (showCatUp)   catUpRecs.forEach(r => allItems.push({ type: 'catup',   date: r.date, note: r.catUpNote  }));
+        if (showCatUp)   catUpRecs.forEach(r => allItems.push({ type: 'catup', date: r.date, note: r.catUpNote, recId: r.id }));
         allItems.sort((a, b) => a.date.localeCompare(b.date));
 
         const hasData = empPaid.length > 0 || specRecs.length > 0 || catUpRecs.length > 0;
@@ -148,10 +148,11 @@ export default function Reports() {
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, color: 'var(--text2)' }}>Días: <b>{s.days}</b></span>
-                {s.accum !== 0 && <span style={{ fontSize: 12, color: 'var(--teal)' }}>{s.accum > 0 ? '+' : ''}{fmt(s.accum)} acum.</span>}
-                {s.comp  >  0 && <span style={{ fontSize: 12, color: 'var(--purple)' }}>−{fmt(s.comp)} comp.</span>}
+                {s.accum !== 0 && <span style={{ fontSize: 12, color: 'var(--coral)'  }}>{s.accum > 0 ? '+' : ''}{fmt(s.accum)} acum.</span>}
+                {s.comp  >  0 && <span style={{ fontSize: 12, color: 'var(--teal)'   }}>−{fmt(s.comp)} comp.</span>}
                 {s.extra >  0 && <span style={{ fontSize: 12, color: 'var(--purple)' }}>+{fmt(s.extra)} extras</span>}
-                {pExt    >  0 && <span style={{ fontSize: 12, color: 'var(--amber)' }}>💰 {fmtMin(pExt)} ext. pag.</span>}
+                {pExt    >  0 && <span style={{ fontSize: 12, color: 'var(--amber)'  }}>💰 {fmtMin(pExt)} ext. pag.</span>}
+                {pOrd    >  0 && <span style={{ fontSize: 12, color: 'var(--amber)'  }}>💰 {fmtMin(pOrd)} ord. pag.</span>}
                 {specRecs.length > 0 && <span className="b ba" style={{ fontSize: 11 }}>⭐ ×{specRecs.length}</span>}
                 {catUpRecs.length > 0 && <span className="b bp" style={{ fontSize: 11 }}>⬆ ×{catUpRecs.length}</span>}
                 <span style={{ fontWeight: 700, fontSize: 13, color: totalNet >= 0 ? 'var(--coral)' : 'var(--teal)' }}>
@@ -180,15 +181,17 @@ export default function Reports() {
                         <td style={{ fontSize: 12, color: 'var(--text2)' }}>{fmtDate(item.date)}</td>
                         <td style={{ fontSize: 12, color: 'var(--text3)' }}>{item.note || '—'}</td>
                         <td style={{ textAlign: 'right' }}>
-                          {item._dbId && (
+                          {(item._dbId || item.recId) && (
                             <button
-                              title="Eliminar pago"
+                              title="Eliminar"
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--coral)', padding: '2px 6px', fontSize: 13, opacity: 0.7 }}
                               onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                               onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
                               onClick={() => {
-                                if (window.confirm(`¿Eliminar este pago del ${fmtDate(item.date)}? Esta acción no se puede deshacer.`)) {
+                                if (item._dbId && window.confirm(`¿Eliminar este pago del ${fmtDate(item.date)}? Esta acción no se puede deshacer.`)) {
                                   deletePaidById(item._dbId);
+                                } else if (item.recId && window.confirm(`¿Quitar la subida de categoría del ${fmtDate(item.date)}?`)) {
+                                  updateRec(item.recId, { catUp: false, catUpNote: '' });
                                 }
                               }}
                             ><i className="ti ti-trash" /></button>
