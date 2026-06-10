@@ -19,7 +19,19 @@ export default function EmployeeLayout() {
   const emp = emps.find(e => e.id === currentUser.eid);
   const [page, setPage] = useState('fich');
 
-  if (!emp) return null;
+  if (!emp) return (
+    <div className="login-screen">
+      <div className="login-box" style={{ textAlign: 'center' }}>
+        <i className="ti ti-user-off" style={{ fontSize: 48, color: 'var(--text3)', display: 'block', marginBottom: 12 }} />
+        <h2 style={{ marginBottom: 8 }}>Cuenta sin vincular</h2>
+        <p style={{ color: 'var(--text2)', marginBottom: 20 }}>
+          Tu usuario aún no está vinculado a ningún empleado de la producción.<br />
+          Contacta con tu administrador para que te asigne un EID.
+        </p>
+        <button className="btn-ghost" onClick={logout}>Cerrar sesión</button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="app-shell">
