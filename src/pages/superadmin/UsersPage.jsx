@@ -65,7 +65,7 @@ export default function UsersPage() {
     <div className="page-content">
       <div className="page-header">
         <h2 className="page-title">Usuarios</h2>
-        <button className="btn-primary" onClick={() => { setForm(EMPTY_PROFILE); setShowNew(true); }}>
+        <button className="btn-primary" onClick={() => { setForm(EMPTY_NEW); setShowNew(true); }}>
           + Añadir usuario
         </button>
       </div>
