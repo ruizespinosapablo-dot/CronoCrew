@@ -6,6 +6,9 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
 ]
 
+// URL pública de la app (para el enlace de invitación). Configurable por env.
+const APP_URL = Deno.env.get('APP_URL') ?? 'https://cronocrew.vercel.app'
+
 const corsHeadersFor = (req: Request) => {
   const origin = req.headers.get('Origin') ?? ''
   return {
@@ -32,20 +35,31 @@ Deno.serve(async (req) => {
 
   try {
     const {
-      email, password, name,
+      email, name,
       alias, dni, position, dept,
       role,
       company_id, production_id,
+      // Horario y contrato (los fija el super admin; el empleado queda activado)
+      start_time, end_time, brk, ch,
+      c_start, c_end,
     } = await req.json()
 
-    if (!email || !password || !name) {
-      throw new ApiError('email, password y name son obligatorios')
-    }
-    if (password.length < 8) {
-      throw new ApiError('La contraseña debe tener al menos 8 caracteres')
+    if (!email || !name) {
+      throw new ApiError('email y name son obligatorios')
     }
     if (role && !['employee', 'admin', 'super_admin'].includes(role)) {
       throw new ApiError('Rol no válido')
+    }
+
+    const isActor = (dept || '') === 'Actores'
+    const timeRe = /^\d{2}:\d{2}$/
+    if (!isActor) {
+      if (!timeRe.test(start_time || '') || !timeRe.test(end_time || '')) {
+        throw new ApiError('Indica una hora de entrada y de salida válidas')
+      }
+    }
+    if (!c_start) {
+      throw new ApiError('Indica la fecha de inicio de contrato')
     }
 
     const supabaseAdmin = createClient(
@@ -74,14 +88,18 @@ Deno.serve(async (req) => {
       throw new ApiError('Solo los super_admin pueden crear usuarios', 403)
     }
 
-    // 1. Crear usuario en Supabase Auth (email ya confirmado)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // 1. Invitar al usuario por email. NO se fija contraseña: el empleado la
+    //    crea él mismo desde el enlace, así nadie (ni el admin) la conoce.
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       email,
-      password,
-      email_confirm: true,
-    })
+      {
+        data: { name },                       // metadata para personalizar el email más adelante
+        redirectTo: `${APP_URL}/set-password`, // página donde el empleado crea su contraseña
+      }
+    )
     // Mensajes de auth (p.ej. "User already registered") son útiles para el admin
     if (authError) throw new ApiError(authError.message)
+    if (!authData?.user) throw new ApiError('No se pudo invitar al usuario')
 
     // 2. Generar iniciales, color e ID para el registro de empleado
     const empId = crypto.randomUUID()
@@ -89,7 +107,9 @@ Deno.serve(async (req) => {
     const hue = Math.floor(Math.random() * 360)
     const color = `hsl(${hue}, 55%, 50%)`
 
-    // 3. Crear registro en emps con los datos básicos (setup_complete = false)
+    // 3. Crear registro en emps ya completo: el super admin aporta horario y
+    //    contrato, por lo que el empleado queda activado (setup_complete = true)
+    //    y el admin de proyecto no necesita activarlo, solo editarlo si quiere.
     const { data: empData, error: empError } = await supabaseAdmin
       .from('emps')
       .insert({
@@ -103,12 +123,13 @@ Deno.serve(async (req) => {
         initials,
         color,
         production_id: production_id || null,
-        setup_complete: false,
-        // defaults hasta que el admin configure el horario
-        start_time: '09:00',
-        end_time: '18:00',
-        brk: 60,
-        ch: 8,
+        setup_complete: true,
+        start_time: isActor ? null : start_time,
+        end_time:   isActor ? null : end_time,
+        brk: isActor ? 0 : (Number.isFinite(+brk) ? Math.trunc(+brk) : 60),
+        ch:  Number.isFinite(+ch) ? +ch : 8,
+        c_start: c_start,
+        c_end: c_end || null,
       })
       .select()
       .single()

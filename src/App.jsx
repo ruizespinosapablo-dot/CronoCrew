@@ -7,15 +7,17 @@ import ExpressClock from './pages/ExpressClock';
 import SuperAdminLayout from './pages/superadmin/SuperAdminLayout';
 import ResetPassword from './pages/ResetPassword';
 
-// Detectar ruta /fichar/:token sin react-router
+// Detectar rutas sin react-router
 const path = window.location.pathname;
 const expressMatch = path.match(/^\/fichar\/([0-9a-f-]{36})$/i);
+const isSetPassword = path === '/set-password';
 
 export default function App() {
   const { currentUser, needsPasswordReset } = useApp();
 
   if (expressMatch) return <ExpressClock token={expressMatch[1]} />;
-  if (needsPasswordReset) return <ResetPassword />;
+  // /set-password: el empleado llega desde el email de invitación para crear su contraseña
+  if (isSetPassword || needsPasswordReset) return <ResetPassword invite={isSetPassword} />;
   if (!currentUser) return <Login />;
 
   // Super admin viendo una producción concreta → panel normal de admin

@@ -83,8 +83,9 @@ export function SuperAdminProvider({ children }) {
     showToast('Usuario actualizado.', 'success');
   }, [showToast]);
 
-  // Crea usuario en Supabase Auth + empleado + perfil vía Edge Function
-  const createUser = useCallback(async ({ email, password, name, alias, dni, position, dept, role, eid, company_id, production_id }) => {
+  // Invita al usuario por email + crea empleado y perfil vía Edge Function.
+  // No se envía contraseña: el empleado la crea desde el enlace de invitación.
+  const createUser = useCallback(async ({ email, name, alias, dni, position, dept, role, eid, company_id, production_id, start_time, end_time, brk, ch, c_start, c_end }) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { showToast('Sesión expirada.', 'error'); return null; }
 
@@ -101,7 +102,7 @@ export function SuperAdminProvider({ children }) {
             'Authorization': `Bearer ${session.access_token}`,
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
-          body: JSON.stringify({ email, password, name, alias, dni, position, dept, role, eid, company_id, production_id }),
+          body: JSON.stringify({ email, name, alias, dni, position, dept, role, eid, company_id, production_id, start_time, end_time, brk, ch, c_start, c_end }),
           signal: controller.signal,
         }
       );
@@ -117,7 +118,7 @@ export function SuperAdminProvider({ children }) {
         production_id: production_id || null,
       };
       setUsers(prev => [...prev, newProfile]);
-      showToast(`Usuario ${name} creado correctamente.`, 'success');
+      showToast(`${name} invitado. Recibirá un email para crear su contraseña.`, 'success');
       return result;
     } catch (err) {
       const msg = err.name === 'AbortError' ? 'Tiempo de espera agotado. Comprueba que la Edge Function está desplegada.' : err.message;
