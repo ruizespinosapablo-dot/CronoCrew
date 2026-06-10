@@ -187,8 +187,8 @@ function UserForm({ form, setForm, companies, filteredProds }) {
         </select>
       </div>
       <div className="fg">
-        <label>EID (empleado vinculado)</label>
-        <input value={form.eid} onChange={f('eid')} placeholder="pablo_espinosa" />
+        <label>EID <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(opcional — vincula a un empleado existente)</span></label>
+        <input value={form.eid} onChange={f('eid')} placeholder="Dejar vacío si el empleado aún no existe" />
       </div>
     </>
   );
