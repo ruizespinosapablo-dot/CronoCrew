@@ -28,7 +28,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: window.location.origin,
+      redirectTo: import.meta.env.VITE_APP_URL || window.location.origin,
     });
     setLoading(false);
     if (err) { setError(err.message); return; }
