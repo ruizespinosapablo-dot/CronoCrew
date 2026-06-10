@@ -127,6 +127,7 @@ export function AppProvider({ children }) {
   const [dbError, setDbError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const currentUserRef = useRef(null);
+  const realtimeChannelRef = useRef(null);
   const [emps, setEmps] = useState([]);
   const [recs, setRecs] = useState([]);
   const [paid, setPaid] = useState([]);
@@ -181,7 +182,11 @@ export function AppProvider({ children }) {
       setExpressLinks(expressData.map(mapExpressLink));
 
       // Realtime: cuando un trabajador ficha, el admin lo ve al instante
-      supabase.channel('express_links_watch')
+      // Limpiar canal anterior si existe (evita error al re-llamar loadData)
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
+      }
+      realtimeChannelRef.current = supabase.channel('express_links_watch')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'express_links' }, ({ new: row }) => {
           setExpressLinks(prev => prev.map(l => l.id === row.id ? mapExpressLink(row) : l));
         })
