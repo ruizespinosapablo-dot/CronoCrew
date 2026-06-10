@@ -24,7 +24,8 @@ const PAGES = [
 ];
 
 export default function AdminLayout() {
-  const { logout, recs, empRequests, expressLinks } = useApp();
+  const { logout, exitProduction, currentUser, recs, empRequests, expressLinks } = useApp();
+  const isSuperAdmin = currentUser?.role === 'super_admin';
   const [page, setPage] = useState('reg');
   const badgeCount = {
     reg: recs.filter(r => r.status === 'pending').length,
@@ -44,6 +45,11 @@ export default function AdminLayout() {
             <div className="avatar" style={{ background: 'var(--accent)', color: '#0a0b0f' }}>AD</div>
             <span style={{ display: 'var(--name-display, inline)' }}>Administrador</span>
           </div>
+          {isSuperAdmin && (
+            <button className="btn-ghost" onClick={exitProduction} style={{ marginRight: 8 }}>
+              <i className="ti ti-arrow-left" style={{ marginRight: 4 }} />Volver al panel
+            </button>
+          )}
           <button className="btn-logout" onClick={logout}>Salir</button>
         </div>
       </div>

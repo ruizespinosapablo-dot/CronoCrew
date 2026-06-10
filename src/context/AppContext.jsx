@@ -218,7 +218,8 @@ export function AppProvider({ children }) {
         email: session.user.email,
         username: session.user.email,
         displayName: profile?.name || session.user.email.split('@')[0],
-        role: ['super_admin', 'admin'].includes(profile?.role) ? 'admin' : 'user',
+        role: profile?.role === 'super_admin' ? 'super_admin'
+            : profile?.role === 'admin' ? 'admin' : 'user',
         eid: profile?.eid || null,
         productionId: profile?.production_id || null,
         companyId: profile?.company_id || null,
@@ -248,7 +249,10 @@ export function AppProvider({ children }) {
 
   // ── Cargar datos cuando hay usuario confirmado ───────────────────────────
   useEffect(() => {
-    if (authChecked && currentUser) loadData(currentUser.productionId);
+    if (!authChecked || !currentUser) return;
+    // Super admin sin producción seleccionada: gestiona su propio panel, no carga datos de producción
+    if (currentUser.role === 'super_admin' && !currentUser.productionId) return;
+    loadData(currentUser.productionId);
   }, [authChecked, currentUser?.id]);
 
   // ── Login / Logout ────────────────────────────────────────────────────────
@@ -260,6 +264,23 @@ export function AppProvider({ children }) {
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
+  }, []);
+
+  // Super admin: entrar a una producción concreta
+  const switchProduction = useCallback(async (productionId, companyId) => {
+    const updated = { ...currentUserRef.current, productionId, companyId };
+    setCurrentUser(updated);
+    currentUserRef.current = updated;
+    await loadData(productionId);
+  }, [loadData]);
+
+  // Super admin: volver al panel propio
+  const exitProduction = useCallback(() => {
+    const base = { ...currentUserRef.current, productionId: null, companyId: null };
+    setCurrentUser(base);
+    currentUserRef.current = base;
+    setEmps([]); setRecs([]); setPaid([]);
+    setFestivos([]); setEmpRequests([]); setAdminPerms([]); setExpressLinks([]);
   }, []);
 
   const sb = (promise) => promise.then(({ error }) => {
@@ -558,7 +579,7 @@ export function AppProvider({ children }) {
 
   return (
     <AppContext.Provider value={{
-      currentUser, login, logout,
+      currentUser, login, logout, switchProduction, exitProduction,
       emps, updateEmp, addEmp,
       recs, updateRec, addRec, upsertRec, deleteRec,
       paid, upsertPaid, removePaid, addPaid, deletePaidById,
