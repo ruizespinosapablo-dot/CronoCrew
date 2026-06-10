@@ -56,7 +56,8 @@ Deno.serve(async (req) => {
     })
     if (authError) throw authError
 
-    // 2. Generar iniciales y color para el registro de empleado
+    // 2. Generar iniciales, color e ID para el registro de empleado
+    const empId = crypto.randomUUID()
     const initials = name.trim().split(/\s+/).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
     const hue = Math.floor(Math.random() * 360)
     const color = `hsl(${hue}, 55%, 50%)`
@@ -65,6 +66,7 @@ Deno.serve(async (req) => {
     const { data: empData, error: empError } = await supabaseAdmin
       .from('emps')
       .insert({
+        id: empId,
         name,
         alias: alias || null,
         dni: dni || null,
