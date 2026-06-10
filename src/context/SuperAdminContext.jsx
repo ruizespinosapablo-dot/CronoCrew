@@ -83,12 +83,39 @@ export function SuperAdminProvider({ children }) {
     showToast('Usuario actualizado.', 'success');
   }, [showToast]);
 
+  // Crea usuario en Supabase Auth + perfil vía Edge Function
+  const createUser = useCallback(async ({ email, password, name, role, eid, company_id, production_id }) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { showToast('Sesión expirada.', 'error'); return null; }
+
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ email, password, name, role, eid, company_id, production_id }),
+      }
+    );
+    const result = await res.json();
+    if (result.error) { showToast('Error: ' + result.error, 'error'); return null; }
+
+    // Añadir el nuevo perfil al estado local
+    const newProfile = { id: result.id, email: result.email, name, role, eid: eid || null, company_id: company_id || null, production_id: production_id || null };
+    setUsers(prev => [...prev, newProfile]);
+    showToast(`Usuario ${name} creado correctamente.`, 'success');
+    return result;
+  }, [showToast]);
+
   return (
     <SuperAdminContext.Provider value={{
       companies, productions, users, loading, reload: load,
       createCompany, updateCompany,
       createProduction, updateProduction,
-      createProfile, updateProfile,
+      createProfile, updateProfile, createUser,
     }}>
       {children}
     </SuperAdminContext.Provider>

@@ -4,19 +4,20 @@ import { useSuperAdmin } from '../../context/SuperAdminContext';
 const ROLES = ['super_admin', 'admin', 'employee'];
 const ROLE_LABEL = { super_admin: 'Super Admin', admin: 'Admin', employee: 'Empleado' };
 
-const EMPTY_PROFILE = { id: '', name: '', role: 'employee', eid: '', company_id: '', production_id: '' };
+const EMPTY_EDIT   = { name: '', role: 'employee', eid: '', company_id: '', production_id: '' };
+const EMPTY_NEW    = { email: '', password: '', name: '', role: 'employee', eid: '', company_id: '', production_id: '' };
 
 export default function UsersPage() {
-  const { users, companies, productions, updateProfile, createProfile } = useSuperAdmin();
-  const [editing, setEditing]   = useState(null);   // profile being edited
-  const [showNew, setShowNew]   = useState(false);  // new profile modal
-  const [form, setForm]         = useState(EMPTY_PROFILE);
-  const [saving, setSaving]     = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  const { users, companies, productions, updateProfile, createUser } = useSuperAdmin();
+  const [editing, setEditing] = useState(null);
+  const [showNew, setShowNew] = useState(false);
+  const [form, setForm]       = useState(EMPTY_NEW);
+  const [editForm, setEditForm] = useState(EMPTY_EDIT);
+  const [saving, setSaving]   = useState(false);
 
   const openEdit = (u) => {
-    setForm({
-      id: u.id, name: u.name || '',
+    setEditForm({
+      name: u.name || '',
       role: u.role || 'employee',
       eid: u.eid || '',
       company_id: u.company_id || '',
@@ -28,21 +29,22 @@ export default function UsersPage() {
   const saveEdit = async () => {
     setSaving(true);
     await updateProfile(editing.id, {
-      name: form.name,
-      role: form.role,
-      eid: form.eid || null,
-      company_id: form.company_id || null,
-      production_id: form.production_id || null,
+      name: editForm.name,
+      role: editForm.role,
+      eid: editForm.eid || null,
+      company_id: editForm.company_id || null,
+      production_id: editForm.production_id || null,
     });
     setSaving(false);
     setEditing(null);
   };
 
   const saveNew = async () => {
-    if (!form.id.trim() || !form.name.trim()) return;
+    if (!form.email.trim() || !form.password.trim() || !form.name.trim()) return;
     setSaving(true);
-    await createProfile({
-      id: form.id.trim(),
+    const result = await createUser({
+      email: form.email.trim(),
+      password: form.password,
       name: form.name.trim(),
       role: form.role,
       eid: form.eid || null,
@@ -50,8 +52,7 @@ export default function UsersPage() {
       production_id: form.production_id || null,
     });
     setSaving(false);
-    setShowNew(false);
-    setForm(EMPTY_PROFILE);
+    if (result) { setShowNew(false); setForm(EMPTY_NEW); }
   };
 
   const getProductionName = (pid) => productions.find(p => p.id === pid)?.name || '—';
@@ -106,30 +107,12 @@ export default function UsersPage() {
         </table>
       </div>
 
-      {/* Ayuda para crear usuarios en Supabase */}
-      <div className="card" style={{ marginTop: 16, borderColor: 'var(--accent)', borderWidth: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-             onClick={() => setShowHelp(h => !h)}>
-          <i className="ti ti-info-circle" style={{ color: 'var(--accent)' }} />
-          <span style={{ fontWeight: 600 }}>¿Cómo crear nuevos usuarios?</span>
-          <i className={`ti ${showHelp ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{ marginLeft: 'auto', color: 'var(--text3)' }} />
-        </div>
-        {showHelp && (
-          <ol style={{ marginTop: 12, paddingLeft: 20, color: 'var(--text2)', lineHeight: 2, fontSize: 14 }}>
-            <li>Ve a <strong>Supabase → Authentication → Users → Add user</strong></li>
-            <li>Introduce el email y contraseña del usuario. Marca "Auto Confirm User".</li>
-            <li>Copia el <strong>UUID</strong> que aparece en la columna User UID.</li>
-            <li>Vuelve aquí y haz clic en <strong>"+ Añadir usuario"</strong> para crear el perfil con ese UUID.</li>
-          </ol>
-        )}
-      </div>
-
       {/* Modal editar */}
       {editing && (
         <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && setEditing(null)}>
           <div className="modal">
             <h3>Editar usuario</h3>
-            <UserForm form={form} setForm={setForm} companies={companies} filteredProds={filteredProds} />
+            <UserForm form={editForm} setForm={setEditForm} companies={companies} filteredProds={filteredProds} />
             <div className="modal-foot">
               <button className="btn-ghost" onClick={() => setEditing(null)}>Cancelar</button>
               <button className="btn-primary" onClick={saveEdit} disabled={saving}>
@@ -140,21 +123,30 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Modal nuevo perfil */}
+      {/* Modal nuevo usuario */}
       {showNew && (
         <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && setShowNew(false)}>
           <div className="modal">
-            <h3>Añadir usuario</h3>
-            <div className="fg">
-              <label>UUID (de Supabase Auth) *</label>
-              <input value={form.id} onChange={e => setForm(p => ({ ...p, id: e.target.value }))}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style={{ fontFamily: 'monospace', fontSize: 12 }} />
+            <h3>Nuevo usuario</h3>
+            <div className="frow">
+              <div className="fg">
+                <label>Email *</label>
+                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="empleado@email.com" />
+              </div>
+              <div className="fg">
+                <label>Contraseña *</label>
+                <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="Mín. 6 caracteres" />
+              </div>
             </div>
             <UserForm form={form} setForm={setForm} companies={companies} filteredProds={filteredProds} />
+            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 8 }}>
+              El usuario podrá cambiar su contraseña desde el login si la olvida.
+            </p>
             <div className="modal-foot">
               <button className="btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={saveNew} disabled={saving || !form.id.trim() || !form.name.trim()}>
-                {saving ? 'Guardando…' : 'Crear perfil'}
+              <button className="btn-primary" onClick={saveNew}
+                disabled={saving || !form.email.trim() || !form.password.trim() || !form.name.trim()}>
+                {saving ? 'Creando…' : 'Crear usuario'}
               </button>
             </div>
           </div>

@@ -123,6 +123,7 @@ const toPermRow = p => ({
 export function AppProvider({ children }) {
   const { showToast } = useToast();
   const [authChecked, setAuthChecked] = useState(false);
+  const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dbError, setDbError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -235,6 +236,10 @@ export function AppProvider({ children }) {
         await resolveSession(session);
       } else if (event === 'SIGNED_IN') {
         await resolveSession(session);
+      } else if (event === 'PASSWORD_RECOVERY') {
+        // Usuario llegó desde el enlace de reset — mostrar pantalla para nueva contraseña
+        setNeedsPasswordReset(true);
+        setAuthChecked(true);
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         currentUserRef.current = null;
@@ -580,6 +585,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       currentUser, login, logout, switchProduction, exitProduction,
+      needsPasswordReset, setNeedsPasswordReset,
       emps, updateEmp, addEmp,
       recs, updateRec, addRec, upsertRec, deleteRec,
       paid, upsertPaid, removePaid, addPaid, deletePaidById,
