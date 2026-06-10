@@ -83,31 +83,47 @@ export function SuperAdminProvider({ children }) {
     showToast('Usuario actualizado.', 'success');
   }, [showToast]);
 
-  // Crea usuario en Supabase Auth + perfil vía Edge Function
-  const createUser = useCallback(async ({ email, password, name, role, eid, company_id, production_id }) => {
+  // Crea usuario en Supabase Auth + empleado + perfil vía Edge Function
+  const createUser = useCallback(async ({ email, password, name, alias, dni, position, dept, role, eid, company_id, production_id }) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { showToast('Sesión expirada.', 'error'); return null; }
 
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ email, password, name, role, eid, company_id, production_id }),
-      }
-    );
-    const result = await res.json();
-    if (result.error) { showToast('Error: ' + result.error, 'error'); return null; }
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
 
-    // Añadir el nuevo perfil al estado local
-    const newProfile = { id: result.id, email: result.email, name, role, eid: eid || null, company_id: company_id || null, production_id: production_id || null };
-    setUsers(prev => [...prev, newProfile]);
-    showToast(`Usuario ${name} creado correctamente.`, 'success');
-    return result;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ email, password, name, alias, dni, position, dept, role, eid, company_id, production_id }),
+          signal: controller.signal,
+        }
+      );
+      clearTimeout(timeout);
+
+      const result = await res.json();
+      if (result.error) { showToast('Error: ' + result.error, 'error'); return null; }
+
+      const newProfile = {
+        id: result.id, email, name, role,
+        eid: result.empId || eid || null,
+        company_id: company_id || null,
+        production_id: production_id || null,
+      };
+      setUsers(prev => [...prev, newProfile]);
+      showToast(`Usuario ${name} creado correctamente.`, 'success');
+      return result;
+    } catch (err) {
+      const msg = err.name === 'AbortError' ? 'Tiempo de espera agotado. Comprueba que la Edge Function está desplegada.' : err.message;
+      showToast('Error: ' + msg, 'error');
+      return null;
+    }
   }, [showToast]);
 
   return (
