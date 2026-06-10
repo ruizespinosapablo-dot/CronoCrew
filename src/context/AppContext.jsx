@@ -46,6 +46,7 @@ const mapEmp = row => ({
   exentoIRPF: row.exento_irpf ?? 0,
   descNomina: row.desc_nomina ?? 0,
   tarifaHoraExt: row.tarifa_hora_ext ?? 0,
+  setupComplete: row.setup_complete ?? false,
 });
 
 const mapRec = row => ({
@@ -107,6 +108,7 @@ const toEmpRow = e => ({
   exento_irpf: e.exentoIRPF ?? 0,
   desc_nomina: e.descNomina ?? 0,
   tarifa_hora_ext: e.tarifaHoraExt ?? 0,
+  setup_complete: e.setupComplete ?? false,
 });
 
 const toReqRow = r => ({

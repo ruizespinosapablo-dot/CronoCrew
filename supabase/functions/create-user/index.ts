@@ -6,19 +6,22 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
-  // Preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { email, password, name, role, eid, company_id, production_id } = await req.json()
+    const {
+      email, password, name,
+      alias, dni, position, dept,
+      role,
+      company_id, production_id,
+    } = await req.json()
 
     if (!email || !password || !name) {
       throw new Error('email, password y name son obligatorios')
     }
 
-    // Cliente admin (service_role) — nunca expuesto al frontend
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -45,33 +48,66 @@ Deno.serve(async (req) => {
       throw new Error('Solo los super_admin pueden crear usuarios')
     }
 
-    // Crear usuario en Supabase Auth (email ya confirmado)
+    // 1. Crear usuario en Supabase Auth (email ya confirmado)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
     })
-
     if (authError) throw authError
 
-    // Crear perfil vinculado
+    // 2. Generar iniciales y color para el registro de empleado
+    const initials = name.trim().split(/\s+/).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+    const hue = Math.floor(Math.random() * 360)
+    const color = `hsl(${hue}, 55%, 50%)`
+
+    // 3. Crear registro en emps con los datos básicos (setup_complete = false)
+    const { data: empData, error: empError } = await supabaseAdmin
+      .from('emps')
+      .insert({
+        name,
+        alias: alias || null,
+        dni: dni || null,
+        role: position || null,   // puesto/cargo
+        dept: dept || 'Producción',
+        email,
+        initials,
+        color,
+        production_id: production_id || null,
+        setup_complete: false,
+        // defaults hasta que el admin configure el horario
+        start_time: '09:00',
+        end_time: '18:00',
+        brk: 60,
+        ch: 8,
+      })
+      .select()
+      .single()
+
+    if (empError) {
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      throw empError
+    }
+
+    // 4. Crear perfil vinculado al empleado via eid
     const { error: profileError } = await supabaseAdmin.from('profiles').insert({
       id: authData.user.id,
       name,
       role: role || 'employee',
-      eid: eid || null,
+      eid: empData.id,            // vinculado automáticamente
       company_id: company_id || null,
       production_id: production_id || null,
     })
 
     if (profileError) {
-      // Rollback: borrar el usuario si falla el perfil
+      // Rollback completo
+      await supabaseAdmin.from('emps').delete().eq('id', empData.id)
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
       throw profileError
     }
 
     return new Response(
-      JSON.stringify({ id: authData.user.id, email: authData.user.email }),
+      JSON.stringify({ id: authData.user.id, email: authData.user.email, empId: empData.id }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err) {
