@@ -132,23 +132,18 @@ export default function CompaniesPage() {
 
       {/* Modal productora */}
       {showCo && (
-        <div className="modal-overlay" onClick={() => setShowCo(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editCo ? 'Editar productora' : 'Nueva productora'}</h3>
-              <button className="modal-close" onClick={() => setShowCo(false)}>✕</button>
+        <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && setShowCo(false)}>
+          <div className="modal">
+            <h3>{editCo ? 'Editar productora' : 'Nueva productora'}</h3>
+            <div className="fg">
+              <label>Nombre *</label>
+              <input value={formCo.name} onChange={e => setFormCo(p => ({ ...p, name: e.target.value }))} placeholder="Ej: Bambú Producciones" />
             </div>
-            <div className="modal-body">
-              <div className="fg">
-                <label>Nombre *</label>
-                <input value={formCo.name} onChange={e => setFormCo(p => ({ ...p, name: e.target.value }))} placeholder="Ej: Bambú Producciones" />
-              </div>
-              <div className="fg">
-                <label>NIF</label>
-                <input value={formCo.nif} onChange={e => setFormCo(p => ({ ...p, nif: e.target.value }))} placeholder="B12345678" />
-              </div>
+            <div className="fg">
+              <label>NIF</label>
+              <input value={formCo.nif} onChange={e => setFormCo(p => ({ ...p, nif: e.target.value }))} placeholder="B12345678" />
             </div>
-            <div className="modal-footer">
+            <div className="modal-foot">
               <button className="btn-ghost" onClick={() => setShowCo(false)}>Cancelar</button>
               <button className="btn-primary" onClick={saveCo} disabled={saving || !formCo.name.trim()}>
                 {saving ? 'Guardando…' : 'Guardar'}
@@ -160,33 +155,28 @@ export default function CompaniesPage() {
 
       {/* Modal producción */}
       {showPr && (
-        <div className="modal-overlay" onClick={() => setShowPr(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editPr ? 'Editar producción' : 'Nueva producción'}</h3>
-              <button className="modal-close" onClick={() => setShowPr(null)}>✕</button>
+        <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && setShowPr(null)}>
+          <div className="modal">
+            <h3>{editPr ? 'Editar producción' : 'Nueva producción'}</h3>
+            <div className="fg">
+              <label>Nombre *</label>
+              <input value={formPr.name} onChange={e => setFormPr(p => ({ ...p, name: e.target.value }))} placeholder="Ej: La Promesa" />
             </div>
-            <div className="modal-body">
-              <div className="fg">
-                <label>Nombre *</label>
-                <input value={formPr.name} onChange={e => setFormPr(p => ({ ...p, name: e.target.value }))} placeholder="Ej: La Promesa" />
-              </div>
-              <div className="fg">
-                <label>Temporada</label>
-                <input value={formPr.season} onChange={e => setFormPr(p => ({ ...p, season: e.target.value }))} placeholder="Ej: 5T" />
-              </div>
-              {editPr && (
-                <div className="fg">
-                  <label>Estado</label>
-                  <select value={editPr.active ? 'true' : 'false'}
-                    onChange={e => setEditPr(prev => ({ ...prev, active: e.target.value === 'true' }))}>
-                    <option value="true">Activa</option>
-                    <option value="false">Inactiva</option>
-                  </select>
-                </div>
-              )}
+            <div className="fg">
+              <label>Temporada</label>
+              <input value={formPr.season} onChange={e => setFormPr(p => ({ ...p, season: e.target.value }))} placeholder="Ej: 5T" />
             </div>
-            <div className="modal-footer">
+            {editPr && (
+              <div className="fg">
+                <label>Estado</label>
+                <select value={editPr.active ? 'true' : 'false'}
+                  onChange={e => setEditPr(prev => ({ ...prev, active: e.target.value === 'true' }))}>
+                  <option value="true">Activa</option>
+                  <option value="false">Inactiva</option>
+                </select>
+              </div>
+            )}
+            <div className="modal-foot">
               <button className="btn-ghost" onClick={() => setShowPr(null)}>Cancelar</button>
               <button className="btn-primary" onClick={savePr} disabled={saving || !formPr.name.trim()}>
                 {saving ? 'Guardando…' : 'Guardar'}

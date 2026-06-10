@@ -126,16 +126,11 @@ export default function UsersPage() {
 
       {/* Modal editar */}
       {editing && (
-        <div className="modal-overlay" onClick={() => setEditing(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Editar usuario</h3>
-              <button className="modal-close" onClick={() => setEditing(null)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <UserForm form={form} setForm={setForm} companies={companies} filteredProds={filteredProds} />
-            </div>
-            <div className="modal-footer">
+        <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && setEditing(null)}>
+          <div className="modal">
+            <h3>Editar usuario</h3>
+            <UserForm form={form} setForm={setForm} companies={companies} filteredProds={filteredProds} />
+            <div className="modal-foot">
               <button className="btn-ghost" onClick={() => setEditing(null)}>Cancelar</button>
               <button className="btn-primary" onClick={saveEdit} disabled={saving}>
                 {saving ? 'Guardando…' : 'Guardar'}
@@ -147,21 +142,16 @@ export default function UsersPage() {
 
       {/* Modal nuevo perfil */}
       {showNew && (
-        <div className="modal-overlay" onClick={() => setShowNew(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Añadir usuario</h3>
-              <button className="modal-close" onClick={() => setShowNew(false)}>✕</button>
+        <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && setShowNew(false)}>
+          <div className="modal">
+            <h3>Añadir usuario</h3>
+            <div className="fg">
+              <label>UUID (de Supabase Auth) *</label>
+              <input value={form.id} onChange={e => setForm(p => ({ ...p, id: e.target.value }))}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style={{ fontFamily: 'monospace', fontSize: 12 }} />
             </div>
-            <div className="modal-body">
-              <div className="fg">
-                <label>UUID (de Supabase Auth) *</label>
-                <input value={form.id} onChange={e => setForm(p => ({ ...p, id: e.target.value }))}
-                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style={{ fontFamily: 'monospace', fontSize: 12 }} />
-              </div>
-              <UserForm form={form} setForm={setForm} companies={companies} filteredProds={filteredProds} />
-            </div>
-            <div className="modal-footer">
+            <UserForm form={form} setForm={setForm} companies={companies} filteredProds={filteredProds} />
+            <div className="modal-foot">
               <button className="btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button>
               <button className="btn-primary" onClick={saveNew} disabled={saving || !form.id.trim() || !form.name.trim()}>
                 {saving ? 'Guardando…' : 'Crear perfil'}
