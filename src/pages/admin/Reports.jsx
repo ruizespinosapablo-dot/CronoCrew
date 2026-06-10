@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { calcPeriod, fmt, fmtDate } from '../../lib/utils';
-import { DEPARTMENTS } from '../../lib/data';
+import { DEPARTMENTS } from '../../lib/constants';
 import PayModal from '../../components/modals/PayModal';
 
 const TOG = (active) => ({

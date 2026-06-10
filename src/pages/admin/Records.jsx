@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { calcRecForEmp, fmt, fmtDate, t2m } from '../../lib/utils';
-import { DEPARTMENTS } from '../../lib/data';
+import { DEPARTMENTS } from '../../lib/constants';
 import EditRecordModal from '../../components/modals/EditRecordModal';
 
 export default function Records() {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { fmtDate, fmt, t2m } from '../../lib/utils';
-import { DEPARTMENTS } from '../../lib/data';
+import { DEPARTMENTS } from '../../lib/constants';
 
 const STATUS_LABEL = {
   pending: { text: 'Esperando', cls: 'by' },

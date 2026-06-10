@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { DEPARTMENTS } from '../../lib/data';
+import { DEPARTMENTS } from '../../lib/constants';
 import { useEnterKey } from '../../lib/useEnterKey';
 
 export default function NewEmployeeModal({ onClose }) {

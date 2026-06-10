@@ -1,11 +1,31 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Orígenes permitidos: producción + desarrollo local
+const ALLOWED_ORIGINS = [
+  'https://cronocrew.vercel.app',
+  'http://localhost:5173',
+]
+
+const corsHeadersFor = (req: Request) => {
+  const origin = req.headers.get('Origin') ?? ''
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Vary': 'Origin',
+  }
+}
+
+// Errores cuyo mensaje es seguro devolver al cliente
+class ApiError extends Error {
+  status: number
+  constructor(message: string, status = 400) {
+    super(message)
+    this.status = status
+  }
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -19,7 +39,13 @@ Deno.serve(async (req) => {
     } = await req.json()
 
     if (!email || !password || !name) {
-      throw new Error('email, password y name son obligatorios')
+      throw new ApiError('email, password y name son obligatorios')
+    }
+    if (password.length < 8) {
+      throw new ApiError('La contraseña debe tener al menos 8 caracteres')
+    }
+    if (role && !['employee', 'admin', 'super_admin'].includes(role)) {
+      throw new ApiError('Rol no válido')
     }
 
     const supabaseAdmin = createClient(
@@ -30,7 +56,7 @@ Deno.serve(async (req) => {
 
     // Verificar que el usuario que llama es super_admin
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('No autorizado')
+    if (!authHeader) throw new ApiError('No autorizado', 401)
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -39,13 +65,13 @@ Deno.serve(async (req) => {
     )
 
     const { data: { user: caller } } = await supabaseClient.auth.getUser()
-    if (!caller) throw new Error('No autenticado')
+    if (!caller) throw new ApiError('No autenticado', 401)
 
     const { data: callerProfile } = await supabaseAdmin
       .from('profiles').select('role').eq('id', caller.id).single()
 
     if (callerProfile?.role !== 'super_admin') {
-      throw new Error('Solo los super_admin pueden crear usuarios')
+      throw new ApiError('Solo los super_admin pueden crear usuarios', 403)
     }
 
     // 1. Crear usuario en Supabase Auth (email ya confirmado)
@@ -54,7 +80,8 @@ Deno.serve(async (req) => {
       password,
       email_confirm: true,
     })
-    if (authError) throw authError
+    // Mensajes de auth (p.ej. "User already registered") son útiles para el admin
+    if (authError) throw new ApiError(authError.message)
 
     // 2. Generar iniciales, color e ID para el registro de empleado
     const empId = crypto.randomUUID()
@@ -113,9 +140,13 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err) {
+    // Solo se devuelven al cliente los mensajes de ApiError;
+    // los errores internos (BD, etc.) se registran pero no se filtran.
+    console.error('[create-user]', err)
+    const isApi = err instanceof ApiError
     return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: isApi ? err.message : 'Error interno al crear el usuario' }),
+      { status: isApi ? err.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })

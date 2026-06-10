@@ -44,8 +44,9 @@ export default function ExpressClock({ token }) {
   useEffect(() => {
     (async () => {
       if (!token || !supabase) { setFetchError('Enlace no válido.'); setLoading(false); return; }
-      const { data, error } = await supabase
-        .from('express_links').select('*').eq('id', token).single();
+      // RPC con el UUID como token: anon no tiene acceso directo a la tabla
+      const { data: rows, error } = await supabase.rpc('get_express_link', { p_id: token });
+      const data = rows?.[0];
       if (error || !data) {
         setFetchError('Enlace no válido o expirado.'); setLoading(false); return;
       }
@@ -67,13 +68,13 @@ export default function ExpressClock({ token }) {
     if (!exit)  { setValidErr('Indica la hora de salida.'); return; }
     if (t2m(exit) <= t2m(entry)) { setValidErr('La salida debe ser posterior a la entrada.'); return; }
     setSubmitting(true);
-    const { error } = await supabase.from('express_links').update({
-      entry, exit,
-      obs: obs.trim() || null,
-      status: 'filed',
-      filed_at: new Date().toISOString(),
-    }).eq('id', token);
-    if (error) { setValidErr('Error al enviar. Inténtalo de nuevo.'); setSubmitting(false); return; }
+    const { data: ok, error } = await supabase.rpc('file_express_link', {
+      p_id: token,
+      p_entry: entry,
+      p_exit: exit,
+      p_obs: obs.trim() || null,
+    });
+    if (error || !ok) { setValidErr('Error al enviar. Inténtalo de nuevo.'); setSubmitting(false); return; }
     setFiled(true);
     setSubmitting(false);
   };

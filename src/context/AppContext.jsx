@@ -347,6 +347,7 @@ export function AppProvider({ children }) {
   }, []);
 
   const upsertRec = useCallback((rec) => {
+    const prodId = currentUserRef.current?.productionId;
     setRecs(prev => {
       const existing = prev.find(r => r.id === rec.id);
       if (existing) {
@@ -356,7 +357,11 @@ export function AppProvider({ children }) {
       logAudit(rec.id, 'create', null, toRecRow(rec));
       return [...prev, rec];
     });
-    sb(supabase.from('recs').upsert(toRecRow(rec), { onConflict: 'id' }));
+    // production_id explícito: las políticas RLS exigen que coincida con la del usuario
+    sb(supabase.from('recs').upsert(
+      { ...toRecRow(rec), ...(prodId ? { production_id: prodId } : {}) },
+      { onConflict: 'id' }
+    ));
   }, []);
 
   const updateEmp = useCallback((id, changes) => {

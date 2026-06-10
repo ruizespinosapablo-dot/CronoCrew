@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSuperAdmin } from '../../context/SuperAdminContext';
-import { DEPARTMENTS } from '../../lib/data';
+import { DEPARTMENTS } from '../../lib/constants';
 
 const ROLES = ['super_admin', 'admin', 'employee'];
 const ROLE_LABEL = { super_admin: 'Super Admin', admin: 'Admin', employee: 'Empleado' };

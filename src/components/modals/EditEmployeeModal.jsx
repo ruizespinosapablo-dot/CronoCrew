@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { DEPARTMENTS } from '../../lib/data';
+import { DEPARTMENTS } from '../../lib/constants';
 import { fmt, t2m } from '../../lib/utils';
 import { useEnterKey } from '../../lib/useEnterKey';
 

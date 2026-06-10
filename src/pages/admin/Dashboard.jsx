@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { calcRec, calcPeriod, fmt, fmtDate, getToday } from '../../lib/utils';
-import { DEPARTMENTS } from '../../lib/data';
+import { DEPARTMENTS } from '../../lib/constants';
 import EditRecordModal from '../../components/modals/EditRecordModal';
 import NewEmployeeModal from '../../components/modals/NewEmployeeModal';
 

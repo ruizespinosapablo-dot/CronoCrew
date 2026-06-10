@@ -75,10 +75,6 @@ create table if not exists admin_perms (
   granted_at timestamptz default now()
 );
 
--- Desactivar RLS (la app usa anon key con acceso completo)
-alter table emps        disable row level security;
-alter table recs        disable row level security;
-alter table paid        disable row level security;
-alter table festivos    disable row level security;
-alter table requests    disable row level security;
-alter table admin_perms disable row level security;
+-- ⚠️ SEGURIDAD: RLS debe estar SIEMPRE activo.
+-- Las políticas vigentes están en rls_policies_v2.sql — ejecútalo después de este schema.
+-- (Una versión anterior de este archivo desactivaba RLS; nunca vuelvas a hacerlo.)
