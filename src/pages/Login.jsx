@@ -41,8 +41,9 @@ export default function Login() {
     <div className="login-screen">
       <div className="login-logo">
         <img src={logo} alt="ClapTime" />
-        ClapTime
+        <span className="wordmark">Clap<span className="wm-suffix">Time</span></span>
       </div>
+      <div className="login-by">by ClapSuite</div>
       <div className="login-box">
         {resetSent ? (
           <>

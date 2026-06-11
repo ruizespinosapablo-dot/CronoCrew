@@ -20,7 +20,7 @@ export default function SuperAdminLayout() {
       <div className="topbar">
         <div className="topbar-logo">
           <img src={logo} alt="ClapTime" />
-          <span className="topbar-title">ClapTime · Super Admin</span>
+          <span className="topbar-title">Clap<span className="wm-suffix">Time</span> <span className="topbar-sub">· Super Admin</span></span>
         </div>
         <div className="topbar-right">
           <div className="topbar-user">
