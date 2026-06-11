@@ -31,8 +31,8 @@ export default function ResetPassword({ invite = false }) {
   return (
     <div className="login-screen">
       <div className="login-logo">
-        <img src={logo} alt="CronoCrew" />
-        CronoCrew
+        <img src={logo} alt="ClapTime" />
+        ClapTime
       </div>
       <div className="login-box">
         {done ? (
@@ -45,7 +45,7 @@ export default function ResetPassword({ invite = false }) {
             <h2>{invite ? 'Crea tu contraseña' : 'Nueva contraseña'}</h2>
             <p style={{ color: 'var(--text2)', marginBottom: 8 }}>
               {invite
-                ? 'Te damos la bienvenida a CronoCrew. Elige una contraseña para tu cuenta.'
+                ? 'Te damos la bienvenida a ClapTime. Elige una contraseña para tu cuenta.'
                 : 'Elige una contraseña segura para tu cuenta.'}
             </p>
             <div className="fg">

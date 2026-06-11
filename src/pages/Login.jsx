@@ -40,8 +40,8 @@ export default function Login() {
   return (
     <div className="login-screen">
       <div className="login-logo">
-        <img src={logo} alt="CronoCrew" />
-        CronoCrew
+        <img src={logo} alt="ClapTime" />
+        ClapTime
       </div>
       <div className="login-box">
         {resetSent ? (

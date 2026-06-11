@@ -91,7 +91,7 @@ export default function ExpressClock({ token }) {
 
   if (fetchError) return (
     <div style={S.page}>
-      <img src={logo} alt="CronoCrew" style={{ width: 44, marginBottom: 20 }} />
+      <img src={logo} alt="ClapTime" style={{ width: 44, marginBottom: 20 }} />
       <div style={{ ...S.card, textAlign: 'center' }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
         <div style={{ color: 'var(--coral)', fontSize: 15, fontWeight: 600 }}>{fetchError}</div>
@@ -101,7 +101,7 @@ export default function ExpressClock({ token }) {
 
   if (filed) return (
     <div style={S.page}>
-      <img src={logo} alt="CronoCrew" style={{ width: 44, marginBottom: 20 }} />
+      <img src={logo} alt="ClapTime" style={{ width: 44, marginBottom: 20 }} />
       <div style={{ ...S.card, textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--teal)', marginBottom: 8 }}>
@@ -117,7 +117,7 @@ export default function ExpressClock({ token }) {
 
   return (
     <div style={S.page}>
-      <img src={logo} alt="CronoCrew" style={{ width: 44, marginBottom: 20 }} />
+      <img src={logo} alt="ClapTime" style={{ width: 44, marginBottom: 20 }} />
       <div style={S.card}>
         {/* Cabecera */}
         <div style={{ marginBottom: '1.25rem' }}>

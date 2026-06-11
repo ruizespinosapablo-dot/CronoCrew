@@ -1,13 +1,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Orígenes permitidos: producción + desarrollo local
+// Orígenes permitidos: producción + dominio de transición de Vercel + local
 const ALLOWED_ORIGINS = [
+  'https://claptime.clapsuite.com',
   'https://cronocrew.vercel.app',
   'http://localhost:5173',
 ]
 
 // URL pública de la app (para el enlace de invitación). Configurable por env.
-const APP_URL = Deno.env.get('APP_URL') ?? 'https://cronocrew.vercel.app'
+const APP_URL = Deno.env.get('APP_URL') ?? 'https://claptime.clapsuite.com'
 
 const corsHeadersFor = (req: Request) => {
   const origin = req.headers.get('Origin') ?? ''

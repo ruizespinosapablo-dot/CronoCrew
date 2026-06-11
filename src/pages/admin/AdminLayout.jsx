@@ -37,8 +37,8 @@ export default function AdminLayout() {
     <div className="app-shell">
       <div className="topbar">
         <div className="topbar-logo">
-          <img src={logo} alt="CronoCrew" />
-          <span className="topbar-title">CronoCrew · Gestión Horaria</span>
+          <img src={logo} alt="ClapTime" />
+          <span className="topbar-title">ClapTime · Gestión Horaria</span>
         </div>
         <div className="topbar-right">
           <div className="topbar-user">

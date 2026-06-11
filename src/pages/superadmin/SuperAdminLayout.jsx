@@ -19,8 +19,8 @@ export default function SuperAdminLayout() {
     <div className="app-shell">
       <div className="topbar">
         <div className="topbar-logo">
-          <img src={logo} alt="CronoCrew" />
-          <span className="topbar-title">CronoCrew · Super Admin</span>
+          <img src={logo} alt="ClapTime" />
+          <span className="topbar-title">ClapTime · Super Admin</span>
         </div>
         <div className="topbar-right">
           <div className="topbar-user">

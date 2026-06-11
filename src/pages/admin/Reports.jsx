@@ -73,7 +73,7 @@ export default function Reports() {
           const rows = [['Empleado', 'Departamento', 'Fecha', 'Tipo', 'Nota', 'Cantidad'].map(escape).join(','), ...allRows];
           const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href = url; a.download = 'cronocrew_pagos.csv'; a.click();
+          const a = document.createElement('a'); a.href = url; a.download = 'claptime_pagos.csv'; a.click();
           URL.revokeObjectURL(url);
         }}><i className="ti ti-download" /> Exportar CSV</button>
       </div>

@@ -50,7 +50,7 @@ export default function NewEmployeeModal({ onClose }) {
         </div>
         <div className="frow">
           <div className="fg"><label>DNI</label><input type="text" value={dni} onChange={e => setDni(e.target.value)} placeholder="12345678A" /></div>
-          <div className="fg"><label>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="laura@cronocrew.com" /></div>
+          <div className="fg"><label>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="laura@email.com" /></div>
         </div>
         <div className="frow">
           <div className="fg"><label>Puesto</label><input type="text" value={role} onChange={e => setRole(e.target.value)} placeholder="Editora de vídeo" /></div>
