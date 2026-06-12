@@ -29,3 +29,6 @@ dist-ssr
 # Datos personales: nunca versionar
 scripts/csv_output/
 *.csv
+
+# Supabase CLI (estado temporal local)
+supabase/.temp/
