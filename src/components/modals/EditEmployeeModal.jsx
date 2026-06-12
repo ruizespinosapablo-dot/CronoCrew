@@ -39,7 +39,6 @@ export default function EditEmployeeModal({ empId, onClose }) {
 
   if (!emp) return null;
 
-  const needsSetup = !emp.setupComplete;
   const isActor = dept === 'Actores';
   const citedNet = !isActor && start && end ? (t2m(end) - t2m(start)) - parseInt(brk) : null;
 
@@ -61,22 +60,6 @@ export default function EditEmployeeModal({ empId, onClose }) {
     <div className="modal-overlay open" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: 560 }}>
         <h3>Editar empleado</h3>
-        {needsSetup && (
-          <div style={{
-            background: 'color-mix(in srgb, var(--warning, #f59e0b) 15%, transparent)',
-            border: '1px solid var(--warning, #f59e0b)',
-            borderRadius: 8, padding: '10px 14px', marginBottom: '1rem',
-            display: 'flex', gap: 10, alignItems: 'flex-start',
-          }}>
-            <i className="ti ti-alert-triangle" style={{ color: 'var(--warning, #f59e0b)', marginTop: 2, flexShrink: 0 }} />
-            <div>
-              <strong style={{ color: 'var(--warning, #f59e0b)', fontSize: 13 }}>Pendiente de configurar</strong>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text2)' }}>
-                Rellena al menos el horario (entrada/salida) y la fecha de inicio de contrato. Al guardar, el empleado quedará activo.
-              </p>
-            </div>
-          </div>
-        )}
         <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: '1rem' }}>{emp.name}</p>
         <div className="frow">
           <div className="fg"><label>Nombre completo</label><input type="text" value={name} onChange={e => setName(e.target.value)} /></div>
@@ -125,7 +108,7 @@ export default function EditEmployeeModal({ empId, onClose }) {
         <div className="modal-foot">
           <button className="btn-sm" onClick={onClose}>Cancelar</button>
           <button className="btn-accent" onClick={handleSave}>
-            {needsSetup ? 'Guardar y activar empleado' : 'Guardar cambios'}
+            Guardar cambios
           </button>
         </div>
       </div>
