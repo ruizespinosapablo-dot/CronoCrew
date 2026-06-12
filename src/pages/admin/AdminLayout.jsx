@@ -9,7 +9,6 @@ import Permissions from './Permissions';
 import Reports from './Reports';
 import Audit from './Audit';
 import ExpressFilings from './ExpressFilings';
-import CierreMensual from './CierreMensual';
 
 const PAGES = [
   { id: 'dash', label: 'Panel',       icon: 'ti-layout-dashboard' },
@@ -20,7 +19,6 @@ const PAGES = [
   { id: 'rep',  label: 'Informes',    icon: 'ti-chart-bar' },
   { id: 'aud',  label: 'Auditoría',   icon: 'ti-shield-check' },
   { id: 'exp',  label: 'Express',     icon: 'ti-bolt', badge: true },
-  { id: 'nom',  label: 'Nóminas',     icon: 'ti-receipt' },
 ];
 
 export default function AdminLayout() {
@@ -89,7 +87,6 @@ export default function AdminLayout() {
           {page === 'rep'  && <Reports />}
           {page === 'aud'  && <Audit />}
           {page === 'exp'  && <ExpressFilings />}
-          {page === 'nom'  && <CierreMensual />}
         </div>
       </div>
     </div>
