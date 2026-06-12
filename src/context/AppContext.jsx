@@ -139,15 +139,35 @@ export function AppProvider({ children }) {
       // Helper: añade filtro de producción si existe
       const withProd = (query) => productionId ? query.eq('production_id', productionId) : query;
 
-      const { data: empsData, error: empsErr } = await withProd(supabase.from('emps').select('*'));
-      if (empsErr) throw empsErr;
+      // Ejecuta una consulta con timeout y reintentos: si se cuelga (proyecto
+      // despertando, microcorte de red…) aborta y reintenta en vez de quedarse
+      // congelado para siempre. queryFn debe DEVOLVER una consulta nueva.
+      const runQuery = async (queryFn, { retries = 2, ms = 15000 } = {}) => {
+        let lastErr;
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            const { data, error } = await Promise.race([
+              queryFn(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera agotado')), ms)),
+            ]);
+            if (error) throw error;
+            return data ?? [];
+          } catch (e) {
+            lastErr = e;
+            if (attempt < retries) await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+          }
+        }
+        throw lastErr;
+      };
+
+      const empsData = await runQuery(() => withProd(supabase.from('emps').select('*')));
 
       const fetchAllRecs = async () => {
         const PAGE = 1000;
         let all = [], from = 0;
         while (true) {
-          const { data, error } = await withProd(supabase.from('recs').select('*').is('deleted_at', null)).range(from, from + PAGE - 1);
-          if (error) throw error;
+          const data = await runQuery(() =>
+            withProd(supabase.from('recs').select('*').is('deleted_at', null)).range(from, from + PAGE - 1));
           all = all.concat(data);
           if (data.length < PAGE) break;
           from += PAGE;
@@ -157,11 +177,11 @@ export function AppProvider({ children }) {
 
       const [recsData, paidData, festivosData, reqsData, permsData, expressData] = await Promise.all([
         fetchAllRecs(),
-        withProd(supabase.from('paid').select('*')).then(({ data, error }) => { if (error) throw error; return data; }),
-        withProd(supabase.from('festivos').select('*').order('date')).then(({ data, error }) => { if (error) throw error; return data; }),
-        withProd(supabase.from('requests').select('*')).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
-        withProd(supabase.from('admin_perms').select('*')).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
-        withProd(supabase.from('express_links').select('*').neq('status', 'imported').order('created_at', { ascending: false })).then(({ data, error }) => { if (error) throw error; return data ?? []; }),
+        runQuery(() => withProd(supabase.from('paid').select('*'))),
+        runQuery(() => withProd(supabase.from('festivos').select('*').order('date'))),
+        runQuery(() => withProd(supabase.from('requests').select('*'))),
+        runQuery(() => withProd(supabase.from('admin_perms').select('*'))),
+        runQuery(() => withProd(supabase.from('express_links').select('*').neq('status', 'imported').order('created_at', { ascending: false }))),
       ]);
 
       setEmps(empsData.map(mapEmp));
