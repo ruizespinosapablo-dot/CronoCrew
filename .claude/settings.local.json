@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push *)",
+      "Read(//Users/pabloespinosa/ClapPay/**)",
+      "Bash(npm install *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

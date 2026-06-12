@@ -110,6 +110,35 @@ const toPermRow = p => ({
   granted_at: p.grantedAt || new Date().toISOString(),
 });
 
+// Pantalla de carga con vía de escape: si tarda demasiado, permite cerrar sesión
+// y volver al login (evita quedarse atrapado en "Iniciando…").
+function LoadingScreen({ label }) {
+  const [showEscape, setShowEscape] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setShowEscape(true), 6000);
+    return () => clearTimeout(t);
+  }, []);
+  const reset = async () => {
+    try { await supabase?.auth.signOut(); } catch { /* ignora */ }
+    window.location.replace('/');
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)', color: 'var(--text)', flexDirection: 'column', gap: 12 }}>
+      <div style={{ fontSize: 24 }}>⏳</div>
+      <div style={{ fontSize: 15, color: 'var(--text2)' }}>{label}</div>
+      {showEscape && (
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>¿Tarda demasiado?</div>
+          <button onClick={reset}
+            style={{ background: 'var(--bg3)', border: '1px solid var(--border3)', color: 'var(--text)', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
+            Cerrar sesión y volver al inicio
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AppProvider({ children }) {
   const { showToast } = useToast();
   const [authChecked, setAuthChecked] = useState(false);
@@ -221,9 +250,21 @@ export function AppProvider({ children }) {
         setAuthChecked(true);
         return;
       }
-      // Obtener perfil del usuario
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', session.user.id).single();
+      // Obtener perfil con timeout + reintentos: si la lectura se cuelga (Supabase
+      // despertando, microcorte), NO debe dejar la app en "Iniciando" para siempre.
+      let profile = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const { data } = await Promise.race([
+            supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000)),
+          ]);
+          profile = data;
+          break;
+        } catch {
+          if (attempt < 2) await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+        }
+      }
       const u = {
         id: session.user.id,
         email: session.user.email,
@@ -237,7 +278,7 @@ export function AppProvider({ children }) {
       };
       setCurrentUser(u);
       currentUserRef.current = u;
-      setAuthChecked(true);
+      setAuthChecked(true); // siempre, aunque el perfil falle, para no bloquear la UI
     };
 
     // INITIAL_SESSION se dispara inmediatamente con la sesión actual (o null)
@@ -579,12 +620,7 @@ export function AppProvider({ children }) {
 
   // Mostrar spinner mientras se comprueba auth o se cargan datos tras login
   if (!authChecked || (currentUser && loading)) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg1)', color: 'var(--text1)', flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontSize: 24 }}>⏳</div>
-        <div style={{ fontSize: 15, color: 'var(--text2)' }}>{!authChecked ? 'Iniciando…' : 'Cargando datos…'}</div>
-      </div>
-    );
+    return <LoadingScreen label={!authChecked ? 'Iniciando…' : 'Cargando datos…'} />;
   }
 
   if (dbError) {
