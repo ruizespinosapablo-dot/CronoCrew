@@ -3,6 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { calcRec, fmt, fmtDate, getToday, t2m } from '../../lib/utils';
 
+const PERM_REASONS = ['Médico (propio)', 'Acompañamiento a familiar', 'Asuntos propios', 'Deber público', 'Otro'];
+
 export default function Clock({ emp }) {
   const { recs, upsertRec, festivos } = useApp();
   const { showToast } = useToast();
@@ -15,6 +17,8 @@ export default function Clock({ emp }) {
   const [custIn, setCustIn] = useState('');
   const [custOut, setCustOut] = useState('');
   const [obs, setObs] = useState('');
+  const [permH, setPermH] = useState('');
+  const [permReason, setPermReason] = useState(PERM_REASONS[0]);
 
   // Past days filing state
   const [selectedPast, setSelectedPast] = useState('');
@@ -132,6 +136,18 @@ export default function Clock({ emp }) {
       obs: todayFestivo?.name || 'Festivo', status: 'pending',
       method: 'Sistema', citedIn, citedOut, absence: 'festivo',
     });
+  };
+
+  const savePerm = () => {
+    const h = parseFloat(permH);
+    if (!h || h <= 0) { showToast('Indica las horas de la ausencia.', 'warning'); return; }
+    const base = recs.find(r => r.eid === emp.id && r.date === TODAY) || {
+      id: crypto.randomUUID(), eid: emp.id, date: TODAY, entry: '', exit: '',
+      brk: emp.brk, obs: '', status: 'pending', method: '—', citedIn, citedOut,
+    };
+    upsertRec({ ...base, permMin: Math.round(h * 60), permReason });
+    setPermH('');
+    showToast(`Ausencia parcial registrada: ${h} h (${permReason})`, 'success');
   };
 
   const saveObs = () => {
@@ -263,6 +279,21 @@ export default function Clock({ emp }) {
             <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700 }}>Descanso real</span>
             <input type="number" value={brkMins} min={0} step={5} onChange={e => setBrkMins(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--amber)', fontSize: 13, fontWeight: 600, outline: 'none', width: 70 }} />
             <span style={{ fontSize: 12, color: 'var(--text2)' }}>minutos</span>
+          </div>
+          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Ausencia parcial justificada (médico, etc.)</span>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={permReason} onChange={e => setPermReason(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, outline: 'none' }}>
+                {PERM_REASONS.map(r => <option key={r}>{r}</option>)}
+              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <input type="number" min={0} step={0.25} value={permH} onChange={e => setPermH(e.target.value)} placeholder="0" style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 70, outline: 'none' }} />
+                <span style={{ fontSize: 12, color: 'var(--text2)' }}>horas</span>
+              </div>
+              <button className="btn-sm" onClick={savePerm}>Aplicar</button>
+              {rec?.permMin > 0 && <span className="b bp" style={{ fontSize: 11 }}>{Math.round(rec.permMin / 60 * 100) / 100} h · {rec.permReason}</span>}
+            </div>
+            <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>No penaliza tu saldo: esas horas se descuentan de la jornada esperada del día.</p>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: '.85rem' }}>
             <div className="co-group">

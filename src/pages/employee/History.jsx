@@ -206,6 +206,7 @@ export default function History({ emp }) {
                       <b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>
                       {isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}
                       {fest && <span style={{ fontSize: 10, marginLeft: 3, padding: '1px 6px', borderRadius: 6, background: 'rgba(230,166,58,.15)', color: 'var(--amber)', fontWeight: 600 }}>Festivo</span>}
+                      {rec.permMin > 0 && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }} title={rec.permReason || ''}>🩺 {Math.round(rec.permMin / 60 * 100) / 100}h just.</span>}
                       {rec.special && <span className="b ba" style={{ fontSize: 10, marginLeft: 3 }}>⭐E</span>}
                       {rec.catUp && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>⬆</span>}
                       {dayPaidExtMin > 0 && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>💰{fmt(dayPaidExtMin)}</span>}

@@ -40,7 +40,10 @@ export function calcRec(rec, emp) {
   let citedOutMin = t2m(co), citedInMin = t2m(ci);
   if (citedOutMin < citedInMin) citedOutMin += 24 * 60;
   const citedNet = (citedOutMin - citedInMin) - realBrk;
-  const contractMin = emp.ch * 60;
+  // Ausencia parcial justificada (médico, etc.): se descuenta de la jornada
+  // ESPERADA, no de la trabajada, así no penaliza el saldo (permiso retribuido).
+  const permMin = rec.permMin || 0;
+  const contractMin = Math.max(0, emp.ch * 60 - permMin);
   let exitMin = t2m(rec.exit), entryMin = t2m(rec.entry);
   if (exitMin < entryMin) exitMin += 24 * 60;
   const worked = exitMin - entryMin;
@@ -71,7 +74,8 @@ export function calcActorRec(rec, emp) {
   const makeupExtra = Math.max(0, (rec.actorMakeup ?? 0) - 60);
   const travelExtra = Math.max(0, (rec.actorTravelIn ?? 0) + (rec.actorTravelOut ?? 0) - 90);
   const net = base - brk + makeupExtra + travelExtra;
-  const contractMin = emp.ch * 60;
+  const permMin = rec.permMin || 0;
+  const contractMin = Math.max(0, emp.ch * 60 - permMin);
   const accum = Math.max(0, net - contractMin);
   const comp = Math.max(0, contractMin - net);
   return { net, accum, comp, total: accum - comp, makeupExtra, travelExtra };
