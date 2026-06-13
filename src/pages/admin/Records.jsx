@@ -1,8 +1,22 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { calcRecForEmp, fmt, fmtDate, t2m } from '../../lib/utils';
 import { DEPARTMENTS } from '../../lib/constants';
 import EditRecordModal from '../../components/modals/EditRecordModal';
+
+// Descansos mínimos (convenio técnicos + sentencia). Fáciles de ajustar.
+const REST_DAY_H = 12;      // entre el fin de una jornada y el inicio de la siguiente
+const REST_WEEKEND_H = 60;  // descanso semanal (fin de semana de por medio)
+
+// ¿Hay un sábado o domingo entre dos fechas (exclusivas)? → aplica descanso semanal.
+function weekendBetween(d1, d2) {
+  const b = new Date(d2 + 'T00:00:00');
+  for (let t = new Date(new Date(d1 + 'T00:00:00').getTime() + 86400000); t < b; t = new Date(t.getTime() + 86400000)) {
+    const wd = t.getDay();
+    if (wd === 0 || wd === 6) return true;
+  }
+  return false;
+}
 
 export default function Records() {
   const { emps, recs, paid, festivos, updateRec } = useApp();
@@ -18,6 +32,35 @@ export default function Records() {
 
   const festivoSet = new Set(festivos.map(f => f.date));
   const absLabels = { baja: '🏥 Baja', vacaciones: '🌴 Vacaciones', festivo: '🎉 Festivo', permiso: '📋 Permiso' };
+
+  // Detección de descanso insuficiente entre jornadas / fin de semana.
+  // Para cada jornada trabajada, mira la jornada trabajada inmediatamente anterior
+  // del mismo empleado y calcula las horas de descanso reales entre salida y entrada.
+  const restInfo = useMemo(() => {
+    const byEmp = {};
+    recs.forEach(r => {
+      if (r.absence || r.libranza || !r.entry || !r.exit) return;
+      (byEmp[r.eid] ||= []).push(r);
+    });
+    const info = {};
+    Object.values(byEmp).forEach(list => {
+      list.sort((a, b) => a.date.localeCompare(b.date));
+      for (let i = 1; i < list.length; i++) {
+        const prev = list[i - 1], cur = list[i];
+        const pEntry = t2m(prev.entry), pExit = t2m(prev.exit);
+        // Si la salida es <= entrada, la jornada cruzó medianoche → salió al día siguiente.
+        const prevExitDate = new Date(prev.date + 'T00:00:00');
+        if (pExit <= pEntry) prevExitDate.setDate(prevExitDate.getDate() + 1);
+        const prevExitDT = prevExitDate.getTime() + pExit * 60000;
+        const curEntryDT = new Date(cur.date + 'T00:00:00').getTime() + t2m(cur.entry) * 60000;
+        const gapH = (curEntryDT - prevExitDT) / 3600000;
+        if (gapH < 0) continue;
+        const reqH = weekendBetween(prev.date, cur.date) ? REST_WEEKEND_H : REST_DAY_H;
+        if (gapH < reqH) info[cur.id] = { gapH, reqH, prevDate: prev.date };
+      }
+    });
+    return info;
+  }, [recs]);
 
   const visibleEmps = filterDept ? emps.filter(e => e.dept === filterDept) : emps;
   const visibleEmpIds = new Set(visibleEmps.map(e => e.id));
@@ -110,7 +153,10 @@ export default function Records() {
               const emp = emps.find(e => e.id === rec.eid);
               if (!emp) return null;
               const workedOnFestivo = festivoSet.has(rec.date) && rec.entry && !rec.absence;
-              const rowStyle = workedOnFestivo ? { background: 'rgba(251,191,36,0.08)', outline: '1px solid var(--amber)' } : {};
+              const rv = restInfo[rec.id];
+              const rowStyle = rv
+                ? { background: 'rgba(255,107,71,0.10)', outline: '1px solid var(--coral)' }
+                : workedOnFestivo ? { background: 'rgba(251,191,36,0.08)', outline: '1px solid var(--amber)' } : {};
 
               if (rec.absence) {
                 return (
@@ -155,6 +201,7 @@ export default function Records() {
                     {rec.kmApplied && <span className="b bp" style={{ fontSize: 10 }} title={rec.kmCount ? `${rec.kmCount} km` : ''}>🚗 {rec.kmEur != null ? `${rec.kmEur}€` : 'sin valorar'}</span>}
                     {rec.libranza && <span className="b bt" style={{ fontSize: 10 }}>📅 Libranza</span>}
                     {workedOnFestivo && <span className="b by" style={{ fontSize: 10 }}>🟡 Festivo</span>}
+                    {rv && <span className="b bc" style={{ fontSize: 10 }} title={`Descanso insuficiente: ${rv.gapH.toFixed(1)}h desde la salida del ${fmtDate(rv.prevDate)} (mínimo ${rv.reqH}h ${rv.reqH === REST_WEEKEND_H ? 'semanal' : 'entre jornadas'})`}>⛔ {rv.gapH.toFixed(1)}h descanso</span>}
                   </td>
                   <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : <span className="b by">Pendiente</span>}</td>
                   <td style={{ color: 'var(--text2)', fontSize: 12, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.obs || '—'}</td>
