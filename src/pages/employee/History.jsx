@@ -4,13 +4,19 @@ import { calcRecForEmp, fmt, fmtDate, weekDates, weekLabel, getToday, DAY_NAMES,
 import EditDayModal from '../../components/modals/EditDayModal';
 
 export default function History({ emp }) {
-  const { recs, paid } = useApp();
+  const { recs, paid, festivos } = useApp();
   const [weekOffset, setWeekOffset] = useState(0);
   const [editDay, setEditDay] = useState(null);
 
   const isActor = emp.dept === 'Actores';
   const dates = weekDates(weekOffset);
   let weekNet = 0, weekSaldo = 0;
+
+  // Nombre del festivo para una fecha (o null si no lo es)
+  const festivoName = (ds) => {
+    const f = festivos.find(x => x.date === ds);
+    return f ? (f.name || 'Festivo') : null;
+  };
 
   return (
     <>
@@ -28,6 +34,7 @@ export default function History({ emp }) {
           const ds = dates[i];
           const rec = recs.find(r => r.eid === emp.id && r.date === ds);
           const isT = ds === getToday(), isW = i >= 5;
+          const fest = festivoName(ds);
           const hasdata = rec && ((isActor ? rec.actorEnd : rec.exit) || rec.libranza || rec.absence);
           let lbl = '—';
           if (rec) {
@@ -36,11 +43,12 @@ export default function History({ emp }) {
             else if (isActor ? rec.actorEnd : rec.exit) lbl = fmt(calcRecForEmp(rec, emp).net);
             else if (rec.entry) lbl = rec.entry;
           }
+          const showFest = !hasdata && fest;
           return (
             <div key={ds} className={`wd${isT ? ' today' : ''}${isW ? ' wknd' : ''}${hasdata ? ' hasdata' : ''}`}>
               <div className="wdn">{d}</div>
               <div className="wdnum">{parseInt(ds.split('-')[2])}<span style={{ fontSize: 11, fontWeight: 500, opacity: .7, marginLeft: 3 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></div>
-              <div className="wdh">{lbl}</div>
+              <div className="wdh" style={showFest ? { color: 'var(--amber)', fontSize: 11, fontWeight: 600 } : undefined}>{showFest ? 'Festivo' : lbl}</div>
             </div>
           );
         })}
@@ -62,7 +70,17 @@ export default function History({ emp }) {
                 if (c?.net) weekNet += c.net;
                 if (c?.total) weekSaldo += c.total;
 
+                const festA = festivoName(ds);
                 if (!rec) {
+                  if (festA) {
+                    return (
+                      <tr key={ds}>
+                        <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>{isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}</td>
+                        <td colSpan={9} style={{ textAlign: 'center', color: 'var(--amber)', fontWeight: 600 }}>🎌 Festivo · {festA}</td>
+                        <td>{!isT && <button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
+                      </tr>
+                    );
+                  }
                   return (
                     <tr key={ds} style={isW ? { opacity: .35 } : {}}>
                       <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>{isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}</td>
@@ -135,7 +153,17 @@ export default function History({ emp }) {
                 if (c?.total) weekSaldo += c.total;
                 if (dayPaidDeduction > 0) weekSaldo -= dayPaidDeduction;
 
+                const fest = festivoName(ds);
                 if (!rec) {
+                  if (fest) {
+                    return (
+                      <tr key={ds}>
+                        <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>{isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}</td>
+                        <td colSpan={7} style={{ textAlign: 'center', color: 'var(--amber)', fontWeight: 600 }}>🎌 Festivo · {fest}</td>
+                        <td>{!isT && <button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
+                      </tr>
+                    );
+                  }
                   return (
                     <tr key={ds} style={isW ? { opacity: .35 } : {}}>
                       <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>{isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}</td>
@@ -177,6 +205,7 @@ export default function History({ emp }) {
                     <td>
                       <b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>
                       {isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}
+                      {fest && <span style={{ fontSize: 10, marginLeft: 3, padding: '1px 6px', borderRadius: 6, background: 'rgba(230,166,58,.15)', color: 'var(--amber)', fontWeight: 600 }}>Festivo</span>}
                       {rec.special && <span className="b ba" style={{ fontSize: 10, marginLeft: 3 }}>⭐E</span>}
                       {rec.catUp && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>⬆</span>}
                       {dayPaidExtMin > 0 && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>💰{fmt(dayPaidExtMin)}</span>}
