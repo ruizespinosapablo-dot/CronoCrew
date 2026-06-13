@@ -26,7 +26,7 @@ const S = {
   },
   badge: {
     background: 'var(--bg3)', border: '1px solid var(--border2)',
-    borderRadius: 6, padding: '4px 10px', fontSize: 12, color: 'var(--text2)',
+    borderRadius: 8, padding: '8px 14px', fontSize: 15, fontWeight: 600, color: 'var(--text)',
   },
 };
 
@@ -38,6 +38,8 @@ export default function ExpressClock({ token }) {
   const [entry, setEntry] = useState('');
   const [exit, setExit] = useState('');
   const [obs, setObs] = useState('');
+  const [kmOn, setKmOn] = useState(false);
+  const [kmCount, setKmCount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [validErr, setValidErr] = useState('');
 
@@ -58,6 +60,7 @@ export default function ExpressClock({ token }) {
       }
       setLink(data);
       setEntry(data.cited_in || '');
+      setExit(data.cited_out || '');   // salida por defecto = fin de citación
       setLoading(false);
     })();
   }, [token]);
@@ -68,11 +71,14 @@ export default function ExpressClock({ token }) {
     if (!exit)  { setValidErr('Indica la hora de salida.'); return; }
     if (t2m(exit) <= t2m(entry)) { setValidErr('La salida debe ser posterior a la entrada.'); return; }
     setSubmitting(true);
+    const cnt = parseFloat(kmCount);
     const { data: ok, error } = await supabase.rpc('file_express_link', {
       p_id: token,
       p_entry: entry,
       p_exit: exit,
       p_obs: obs.trim() || null,
+      p_km_applied: kmOn,
+      p_km_count: kmOn && cnt > 0 ? cnt : null,
     });
     if (error || !ok) { setValidErr('Error al enviar. Inténtalo de nuevo.'); setSubmitting(false); return; }
     setFiled(true);
@@ -154,6 +160,17 @@ export default function ExpressClock({ token }) {
             <input type="text" value={obs} onChange={e => setObs(e.target.value)}
               placeholder="Ej: rodaje exterior, espera por producción…"
               style={S.input} />
+          </div>
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 15, color: 'var(--text)' }}>
+              <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} style={{ width: 18, height: 18, cursor: 'pointer' }} />
+              🚗 Aplicar kilometraje
+            </label>
+            {kmOn && (
+              <input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)}
+                placeholder="Km (opcional)" style={{ ...S.input, marginTop: 8 }} />
+            )}
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>Producción le pondrá el importe en € al revisar.</div>
           </div>
         </div>
 

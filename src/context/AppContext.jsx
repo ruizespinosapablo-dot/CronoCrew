@@ -29,6 +29,8 @@ const mapExpressLink = row => ({
   entry: row.entry || null,
   exit: row.exit || null,
   obs: row.obs || '',
+  kmApplied: row.km_applied || false,
+  kmCount: row.km_count ?? null,
   status: row.status || 'pending',
   createdAt: row.created_at,
   expiresAt: row.expires_at,
@@ -567,6 +569,7 @@ export function AppProvider({ children }) {
       cited_in: link.citedIn, cited_out: link.citedOut,
       absence: null, libranza: false, special: false, cat_up: false,
       paid_extra: withPayment && extraMin > 0 ? extraMin : 0,
+      km_applied: link.kmApplied || false, km_count: link.kmCount ?? null,
       ...(prodId ? { production_id: prodId } : {}),
     };
     const { error: recErr } = await supabase.from('recs').upsert(recRow, { onConflict: 'id' });
