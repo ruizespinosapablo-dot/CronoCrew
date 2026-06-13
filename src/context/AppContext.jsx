@@ -123,7 +123,17 @@ function LoadingScreen({ label }) {
     return () => clearTimeout(t);
   }, []);
   const reset = async () => {
-    try { await supabase?.auth.signOut(); } catch { /* ignora */ }
+    // Limpia el token local primero: si otra pestaña retiene el lock de Supabase,
+    // signOut() puede colgarse y el botón no haría nada. Así forzamos el logout.
+    try {
+      Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
+    } catch { /* ignora */ }
+    try {
+      await Promise.race([
+        supabase?.auth.signOut({ scope: 'local' }),
+        new Promise(res => setTimeout(res, 1500)),
+      ]);
+    } catch { /* ignora */ }
     window.location.replace('/');
   };
   return (

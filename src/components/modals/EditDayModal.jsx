@@ -146,7 +146,7 @@ export default function EditDayModal({ empId, date, onClose }) {
             <div className="frow" style={{ alignItems: 'flex-end' }}>
               <div className="fg">
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} style={{ width: 16, height: 16 }} /> 🚗 Apliqué kilometraje
+                  <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} style={{ width: 16, height: 16 }} /> 🚗 Aplicar kilometraje
                 </label>
               </div>
               {kmOn && <div className="fg"><label>Km (opcional)</label><input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="0" /></div>}

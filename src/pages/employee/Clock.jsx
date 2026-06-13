@@ -318,48 +318,6 @@ export default function Clock({ emp }) {
               {isLongCited && <span className="b ba" style={{ fontSize: 11 }}>⭐ Jornada especial</span>}
             </div>
           </div>
-          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700 }}>Descanso real</span>
-            <input type="number" value={brkMins} min={0} step={5} onChange={e => setBrkMins(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--amber)', fontSize: 13, fontWeight: 600, outline: 'none', width: 70 }} />
-            <span style={{ fontSize: 12, color: 'var(--text2)' }}>minutos</span>
-          </div>
-          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Ausencia parcial justificada (médico, etc.)</span>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <select value={permReason} onChange={e => setPermReason(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, outline: 'none' }}>
-                {PERM_REASONS.map(r => <option key={r}>{r}</option>)}
-              </select>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <input type="number" min={0} step={0.25} value={permH} onChange={e => setPermH(e.target.value)} placeholder="0" style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 70, outline: 'none' }} />
-                <span style={{ fontSize: 12, color: 'var(--text2)' }}>horas</span>
-              </div>
-              <button className="btn-sm" onClick={savePerm}>Aplicar</button>
-              {rec?.permMin > 0 && <span className="b bp" style={{ fontSize: 11 }}>{Math.round(rec.permMin / 60 * 100) / 100} h · {rec.permReason}</span>}
-            </div>
-            <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>No penaliza tu saldo: esas horas se descuentan de la jornada esperada del día.</p>
-          </div>
-          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Kilometraje</span>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
-                <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
-                🚗 Apliqué kilometraje hoy
-              </label>
-              {kmOn && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="0" style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 80, outline: 'none' }} />
-                  <span style={{ fontSize: 12, color: 'var(--text2)' }}>km (opcional)</span>
-                </div>
-              )}
-              <button className="btn-sm" onClick={() => saveKm(kmOn)}>Aplicar</button>
-              {rec?.kmApplied && (
-                <span className="b bp" style={{ fontSize: 11 }}>
-                  🚗 {rec.kmEur != null ? `${rec.kmEur} €` : `${rec.kmCount ? rec.kmCount + ' km · ' : ''}pendiente de valorar`}
-                </span>
-              )}
-            </div>
-            <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>El administrador le asignará el importe en € al revisar tu jornada.</p>
-          </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: '.85rem' }}>
             <div className="co-group">
               <h4>Entrada</h4>
@@ -388,6 +346,48 @@ export default function Clock({ emp }) {
               <button className="btn-libranza" style={{ width: '100%' }} onClick={doLibranza}>📅 Marcar libranza</button>
               <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>Compensa {emp.ch}h (jornada contrato)</p>
             </div>
+          </div>
+          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700 }}>Descanso real</span>
+            <input type="number" value={brkMins} min={0} step={5} onChange={e => setBrkMins(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--amber)', fontSize: 13, fontWeight: 600, outline: 'none', width: 70 }} />
+            <span style={{ fontSize: 12, color: 'var(--text2)' }}>minutos</span>
+          </div>
+          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Ausencia parcial justificada (médico, etc.)</span>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={permReason} onChange={e => setPermReason(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, outline: 'none' }}>
+                {PERM_REASONS.map(r => <option key={r}>{r}</option>)}
+              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <input type="number" min={0} step={0.25} value={permH} onChange={e => setPermH(e.target.value)} placeholder="0" style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 70, outline: 'none' }} />
+                <span style={{ fontSize: 12, color: 'var(--text2)' }}>horas</span>
+              </div>
+              <button className="btn-sm" onClick={savePerm}>Aplicar</button>
+              {rec?.permMin > 0 && <span className="b bp" style={{ fontSize: 11 }}>{Math.round(rec.permMin / 60 * 100) / 100} h · {rec.permReason}</span>}
+            </div>
+            <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>No penaliza tu saldo: esas horas se descuentan de la jornada esperada del día.</p>
+          </div>
+          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Kilometraje</span>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                🚗 Aplicar kilometraje
+              </label>
+              {kmOn && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="0" style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 80, outline: 'none' }} />
+                  <span style={{ fontSize: 12, color: 'var(--text2)' }}>km (opcional)</span>
+                </div>
+              )}
+              <button className="btn-sm" onClick={() => saveKm(kmOn)}>Aplicar</button>
+              {rec?.kmApplied && (
+                <span className="b bp" style={{ fontSize: 11 }}>
+                  🚗 {rec.kmEur != null ? `${rec.kmEur} €` : `${rec.kmCount ? rec.kmCount + ' km · ' : ''}pendiente de valorar`}
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>El administrador le asignará el importe en € al revisar tu jornada.</p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
