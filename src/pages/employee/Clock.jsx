@@ -298,8 +298,10 @@ export default function Clock({ emp }) {
         </div>
         <div className="cp-right">
           {locked && (
-            <div style={{ background: 'rgba(201,242,62,0.08)', border: '1px solid var(--accent)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem', fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
-              ✓ Fichaje confirmado · pendiente de revisión. Para corregir algo, edítalo desde tu Historial.
+            <div style={{ background: rec.status === 'approved' ? 'rgba(51,214,192,0.08)' : 'rgba(201,242,62,0.08)', border: `1px solid ${rec.status === 'approved' ? 'var(--teal)' : 'var(--accent)'}`, borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem', fontSize: 13, color: rec.status === 'approved' ? 'var(--teal)' : 'var(--accent)', fontWeight: 600 }}>
+              {rec.status === 'approved'
+                ? '✓ Fichaje aprobado por administración.'
+                : '✓ Fichaje confirmado · pendiente de revisión. Para corregir algo, edítalo desde tu Historial.'}
             </div>
           )}
           <div style={{ opacity: locked ? 0.5 : 1, pointerEvents: locked ? 'none' : 'auto' }}>

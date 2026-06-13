@@ -19,6 +19,28 @@ export default function EmployeeLayout() {
   const emp = emps.find(e => e.id === currentUser.eid);
   const [page, setPage] = useState('fich');
 
+  // Si el usuario TIENE un EID pero su ficha aún no aparece, normalmente es que
+  // los datos todavía no han cargado (p. ej. al abrir una segunda ventana, que
+  // dispara una recarga de sesión). Eso NO es "cuenta sin vincular": mostramos
+  // un estado de carga con opción de recargar, en vez del mensaje de error.
+  if (!emp && currentUser.eid) return (
+    <div className="login-screen">
+      <div className="login-box" style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+        <h2 style={{ marginBottom: 8 }}>Cargando tu información…</h2>
+        <p style={{ color: 'var(--text2)', marginBottom: 20 }}>
+          Estamos recuperando los datos de tu producción.<br />
+          Si tienes otra ventana de ClapTime abierta, ciérrala y recarga.
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <button className="btn-accent" onClick={() => window.location.reload()}>Recargar</button>
+          <button className="btn-ghost" onClick={logout}>Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // EID ausente de verdad → cuenta no vinculada a ningún empleado.
   if (!emp) return (
     <div className="login-screen">
       <div className="login-box" style={{ textAlign: 'center' }}>
