@@ -69,6 +69,9 @@ export default function EditRecordModal({ recId, onClose }) {
   const [payCheck, setPayCheck] = useState(false);
   const [payExt, setPayExt] = useState(0);
   const [kmEur, setKmEur] = useState('');
+  const [kmOn, setKmOn] = useState(false);
+  const [dropPerm, setDropPerm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   // Actor-specific fields
   const [actorCited, setActorCited] = useState('');
   const [actorEnd, setActorEnd] = useState('');
@@ -100,6 +103,8 @@ export default function EditRecordModal({ recId, onClose }) {
     if (prevPay) { setPayCheck(true); setPayExt(prevPay.extMin || 0); }
     else { setPayCheck(false); setPayExt(0); }
     setKmEur(rec.kmEur != null ? String(rec.kmEur) : '');
+    setKmOn(rec.kmApplied || false);
+    setDropPerm(false);
   }, [rec, emp, paid]);
 
   if (!rec || !emp) return null;
@@ -114,6 +119,11 @@ export default function EditRecordModal({ recId, onClose }) {
     ? calcActorRec({ actorCited, actorEnd, actorMakeup: +actorMakeup, actorTravelIn: +actorTravelIn, actorTravelOut: +actorTravelOut, actorBreak: +actorBreak }, emp)
     : null;
 
+  const kmPatch = kmOn
+    ? { kmApplied: true, kmEur: kmEur !== '' ? parseFloat(kmEur) : null }
+    : { kmApplied: false, kmCount: null, kmEur: null };
+  const permPatch = dropPerm ? { permMin: 0, permReason: null } : {};
+
   const handleSave = () => {
     if (isLibranza) {
       updateRec(recId, {
@@ -123,6 +133,7 @@ export default function EditRecordModal({ recId, onClose }) {
         citedIn: '', citedOut: '',
         actorCited: null, actorEnd: null,
         kmApplied: false, kmCount: null, kmEur: null,
+        permMin: 0, permReason: null,
       });
       removePaid(rec.eid, rec.date);
     } else if (isActor) {
@@ -134,7 +145,7 @@ export default function EditRecordModal({ recId, onClose }) {
         actorMakeup: +actorMakeup, actorTravelIn: +actorTravelIn,
         actorTravelOut: +actorTravelOut, actorBreak: +actorBreak,
         libranza: false, special: false, catUp: false,
-        kmEur: kmEur !== '' ? parseFloat(kmEur) : null,
+        ...kmPatch, ...permPatch,
       });
     } else {
       updateRec(recId, {
@@ -143,7 +154,7 @@ export default function EditRecordModal({ recId, onClose }) {
         special, specialNote: special ? specialNote : '',
         catUp, catUpNote: catUp ? catUpNote : '',
         libranza: false,
-        kmEur: kmEur !== '' ? parseFloat(kmEur) : null,
+        ...kmPatch, ...permPatch,
       });
       if (payCheck && parseFloat(payExt) > 0) {
         upsertPaid({ eid: rec.eid, date: rec.date, month: rec.date.slice(0, 7), ordMin: 0, extMin: parseFloat(payExt), note: `Extras ${fmtDate(rec.date)}` });
@@ -290,27 +301,43 @@ export default function EditRecordModal({ recId, onClose }) {
             </div>
           </>
         )}
-        {(rec.kmApplied || rec.permMin > 0) && (
+        {!isLibranza && (
           <div style={{ marginTop: '1rem', padding: '.8rem 1rem', background: 'var(--bg3)', borderRadius: 'var(--r)', border: '1px solid var(--border2)' }}>
             {rec.permMin > 0 && (
-              <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: rec.kmApplied ? '.6rem' : 0 }}>
-                🩺 Ausencia parcial justificada: <b style={{ color: 'var(--text)' }}>{Math.round(rec.permMin / 60 * 100) / 100} h</b> · {rec.permReason || '—'} <span style={{ color: 'var(--text3)' }}>(no penaliza el saldo)</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: '.75rem', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 13, color: 'var(--text2)', opacity: dropPerm ? 0.5 : 1 }}>
+                  🩺 Ausencia parcial: <b style={{ color: 'var(--text)', textDecoration: dropPerm ? 'line-through' : undefined }}>{Math.round(rec.permMin / 60 * 100) / 100} h</b> · {rec.permReason || '—'} <span style={{ color: 'var(--text3)' }}>(no penaliza el saldo)</span>
+                  {dropPerm && <span style={{ color: 'var(--coral)', marginLeft: 6 }}>· se eliminará al guardar</span>}
+                </div>
+                <button className="btn-sm" onClick={() => setDropPerm(v => !v)} style={dropPerm ? { borderColor: 'var(--coral)', color: 'var(--coral)' } : {}}>
+                  {dropPerm ? 'Mantener ausencia' : '🗑 Quitar ausencia'}
+                </button>
               </div>
             )}
-            {rec.kmApplied && (
-              <div className="fg" style={{ marginBottom: 0 }}>
-                <label>🚗 Kilometraje — importe a pagar (€){rec.kmCount ? ` · ${rec.kmCount} km declarados` : ''}</label>
+            <label className="tog-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} />
+              <span style={{ color: 'var(--teal)', fontWeight: 700 }}>🚗 Kilometraje aplicado</span>
+            </label>
+            {kmOn && (
+              <div className="fg" style={{ marginTop: '.6rem', marginBottom: 0 }}>
+                <label>Importe a pagar (€){rec.kmCount ? ` · ${rec.kmCount} km declarados` : ''}</label>
                 <input type="number" min={0} step="0.01" value={kmEur} onChange={e => setKmEur(e.target.value)} placeholder="Ej: 12.50" />
-                <span style={{ fontSize: 11, color: 'var(--text3)' }}>Este importe aparecerá en Informes y se podrá exportar a ClapPay.</span>
+                <span style={{ fontSize: 11, color: 'var(--text3)' }}>Aparecerá en Informes y se podrá exportar a ClapPay.</span>
               </div>
             )}
           </div>
         )}
-        {/* Historial de cambios */}
+        {/* Historial de cambios (desplegable) */}
         <div style={{ borderTop: '1px solid var(--border2)', marginTop: '1rem', paddingTop: '1rem' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '.6rem' }}>
-            🕓 Historial de cambios
-          </div>
+          <button
+            onClick={() => setShowHistory(v => !v)}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)' }}
+          >
+            <span>🕓 Historial de cambios{!auditLoading && auditLogs.length > 0 ? ` (${auditLogs.length})` : ''}</span>
+            <span style={{ fontSize: 13 }}>{showHistory ? '▲' : '▼'}</span>
+          </button>
+          {showHistory && (<>
+          <div style={{ marginTop: '.6rem' }} />
           {auditLoading && <div style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</div>}
           {!auditLoading && auditLogs.length === 0 && (
             <div style={{ fontSize: 12, color: 'var(--text3)', fontStyle: 'italic' }}>Sin cambios registrados todavía.</div>
@@ -326,6 +353,7 @@ export default function EditRecordModal({ recId, onClose }) {
               <AuditDiff prev={log.prev_data} next={log.new_data} />
             </div>
           ))}
+          </>)}
         </div>
 
         {showDeleteConfirm && (
