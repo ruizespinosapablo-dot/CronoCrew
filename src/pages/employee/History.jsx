@@ -76,7 +76,7 @@ export default function History({ emp }) {
                     return (
                       <tr key={ds}>
                         <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>{isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}</td>
-                        <td colSpan={9} style={{ textAlign: 'center', color: 'var(--amber)', fontWeight: 600 }}>🎌 Festivo · {festA}</td>
+                        <td colSpan={9} style={{ textAlign: 'center', color: 'var(--amber)', fontWeight: 600 }}>🎉 Festivo · {festA}</td>
                         <td>{!isT && <button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
                       </tr>
                     );
@@ -159,7 +159,7 @@ export default function History({ emp }) {
                     return (
                       <tr key={ds}>
                         <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>{isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}</td>
-                        <td colSpan={7} style={{ textAlign: 'center', color: 'var(--amber)', fontWeight: 600 }}>🎌 Festivo · {fest}</td>
+                        <td colSpan={7} style={{ textAlign: 'center', color: 'var(--amber)', fontWeight: 600 }}>🎉 Festivo · {fest}</td>
                         <td>{!isT && <button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
                       </tr>
                     );
