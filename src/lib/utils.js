@@ -48,6 +48,11 @@ export function calcRec(rec, emp) {
   if (exitMin < entryMin) exitMin += 24 * 60;
   const worked = exitMin - entryMin;
   const net = worked - realBrk;
+  // Jornada no habitual (fin de semana / festivo trabajado): no hay jornada
+  // esperada, así que TODO el trabajo se suma al acumulado y nunca compensa.
+  if (rec.extraDay) {
+    return { net, accum: net, comp: 0, extra: 0, total: net, citedNet, citedStart: ci, citedEnd: co, extraDay: true };
+  }
   let accum = 0, comp = 0, extra = 0;
   if (net < contractMin) { comp = contractMin - net; }
   else if (net <= citedNet) { accum = net - contractMin; }

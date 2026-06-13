@@ -14,6 +14,7 @@ const FIELD_LABELS = {
   cited_in: 'Hora citada entrada', cited_out: 'Hora citada salida',
   perm_min: 'Ausencia parcial (min)', perm_reason: 'Motivo ausencia',
   km_applied: 'Kilometraje', km_count: 'Km', km_eur: 'Importe km (€)',
+  extra_day: 'Jornada no habitual',
 };
 
 function AuditDiff({ prev, next }) {

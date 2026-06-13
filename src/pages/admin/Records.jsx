@@ -148,6 +148,7 @@ export default function Records() {
                     {rec.libranza && <span style={{ color: 'var(--teal)', fontWeight: 700 }}>{fmt(c.total)}</span>}
                     {' '}
                     {dayPaidExt > 0 && <span className="b bp" style={{ fontSize: 10 }}>💰{dayPaidExt}m</span>}
+                    {rec.extraDay && <span className="b bt" style={{ fontSize: 10 }} title="Jornada no habitual: todo al acumulado">🗓️ No habitual</span>}
                     {rec.special && <span className="b ba" style={{ fontSize: 10 }}>⭐E</span>}
                     {rec.catUp && <span className="b bp" style={{ fontSize: 10 }}>⬆X</span>}
                     {rec.permMin > 0 && <span className="b bp" style={{ fontSize: 10 }} title={rec.permReason || ''}>🩺{Math.round(rec.permMin / 60 * 100) / 100}h</span>}

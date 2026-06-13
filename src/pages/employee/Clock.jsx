@@ -38,6 +38,8 @@ export default function Clock({ emp }) {
   const [extraExit, setExtraExit] = useState('');
   const [extraBrk, setExtraBrk] = useState(emp.brk);
   const [extraObs, setExtraObs] = useState('');
+  const [extraKm, setExtraKm] = useState(false);
+  const [extraKmCount, setExtraKmCount] = useState('');
 
   useEffect(() => {
     const tick = () => {
@@ -246,15 +248,20 @@ export default function Clock({ emp }) {
     const citedOutMin = entryMin + citedMins + brk;
     const citedOutH = String(Math.floor(citedOutMin / 60) % 24).padStart(2, '0');
     const citedOutM = String(citedOutMin % 60).padStart(2, '0');
+    const cnt = parseFloat(extraKmCount);
     upsertRec({
       id: crypto.randomUUID(), eid: emp.id, date: extraDate,
       entry: extraEntry, exit: extraExit, brk,
       obs: extraObs, status: 'pending', method: 'Manual',
-      citedIn: extraEntry, citedOut: `${citedOutH}:${citedOutM}`, special: true,
+      citedIn: extraEntry, citedOut: `${citedOutH}:${citedOutM}`,
+      extraDay: true,                       // día no habitual → todo va al acumulado
+      special: citedMins > 555,             // jornada especial automática si citación > 9h15
+      kmApplied: extraKm, kmCount: extraKm && cnt > 0 ? cnt : null,
     });
     setExtraDate(''); setExtraCited(defaultExtraCited);
     setExtraEntry(''); setExtraExit('');
     setExtraBrk(emp.brk); setExtraObs('');
+    setExtraKm(false); setExtraKmCount('');
   };
 
   const absLabels = { baja: '🏥 Baja médica', vacaciones: '🌴 Vacaciones', festivo: '🎉 Festivo', permiso: '📋 Permiso' };
@@ -551,6 +558,21 @@ export default function Clock({ emp }) {
             <div className="fg"><label>Descanso (min)</label><input type="number" value={extraBrk} min={0} step={5} onChange={e => setExtraBrk(e.target.value)} /></div>
             <div className="fg"><label>Obs.</label><input type="text" value={extraObs} onChange={e => setExtraObs(e.target.value)} placeholder="Opcional" /></div>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap', marginBottom: '.75rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={extraKm} onChange={e => setExtraKm(e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+              🚗 Aplicar kilometraje
+            </label>
+            {extraKm && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <input type="number" min={0} step={1} value={extraKmCount} onChange={e => setExtraKmCount(e.target.value)} placeholder="0" style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 80, outline: 'none' }} />
+                <span style={{ fontSize: 12, color: 'var(--text2)' }}>km (opcional)</span>
+              </div>
+            )}
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--text3)', marginBottom: '.75rem' }}>
+            Es un día que normalmente no trabajas: <b style={{ color: 'var(--teal)' }}>todo el tiempo trabajado se suma a tu acumulado</b> (no genera compensación). La jornada especial se marca sola si la citación supera 9h15.
+          </p>
           <button className="btn-accent" onClick={saveExtraDay} disabled={!extraDate || !extraEntry || !extraExit}>
             Registrar jornada no habitual
           </button>
