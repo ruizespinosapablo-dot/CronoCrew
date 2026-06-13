@@ -4,9 +4,10 @@ import { calcRecForEmp, fmt, fmtDate, t2m } from '../../lib/utils';
 import { DEPARTMENTS } from '../../lib/constants';
 import EditRecordModal from '../../components/modals/EditRecordModal';
 
-// Descansos mínimos (convenio técnicos + sentencia). Fáciles de ajustar.
-const REST_DAY_H = 12;      // entre el fin de una jornada y el inicio de la siguiente
-const REST_WEEKEND_H = 60;  // descanso semanal (fin de semana de por medio)
+// Descansos mínimos (convenios + STS 274/2026). Fáciles de ajustar.
+const REST_DAY_H = 12;        // técnicos: entre fin de jornada e inicio de la siguiente
+const REST_DAY_ACTOR_H = 13;  // actores: convenio de actores (mín. 13h entre jornadas)
+const REST_WEEKEND_H = 60;    // descanso semanal (fin de semana de por medio)
 
 // ¿Hay un sábado o domingo entre dos fechas (exclusivas)? → aplica descanso semanal.
 function weekendBetween(d1, d2) {
@@ -43,7 +44,9 @@ export default function Records() {
       (byEmp[r.eid] ||= []).push(r);
     });
     const info = {};
-    Object.values(byEmp).forEach(list => {
+    Object.entries(byEmp).forEach(([eid, list]) => {
+      const isActor = emps.find(e => e.id === eid)?.dept === 'Actores';
+      const dayH = isActor ? REST_DAY_ACTOR_H : REST_DAY_H;
       list.sort((a, b) => a.date.localeCompare(b.date));
       for (let i = 1; i < list.length; i++) {
         const prev = list[i - 1], cur = list[i];
@@ -55,12 +58,12 @@ export default function Records() {
         const curEntryDT = new Date(cur.date + 'T00:00:00').getTime() + t2m(cur.entry) * 60000;
         const gapH = (curEntryDT - prevExitDT) / 3600000;
         if (gapH < 0) continue;
-        const reqH = weekendBetween(prev.date, cur.date) ? REST_WEEKEND_H : REST_DAY_H;
+        const reqH = weekendBetween(prev.date, cur.date) ? REST_WEEKEND_H : dayH;
         if (gapH < reqH) info[cur.id] = { gapH, reqH, prevDate: prev.date };
       }
     });
     return info;
-  }, [recs]);
+  }, [recs, emps]);
 
   const visibleEmps = filterDept ? emps.filter(e => e.dept === filterDept) : emps;
   const visibleEmpIds = new Set(visibleEmps.map(e => e.id));
