@@ -12,6 +12,8 @@ const FIELD_LABELS = {
   obs: 'Observación', status: 'Estado', absence: 'Ausencia',
   libranza: 'Libranza', special: 'Jornada especial', cat_up: 'Subida categoría',
   cited_in: 'Hora citada entrada', cited_out: 'Hora citada salida',
+  perm_min: 'Ausencia parcial (min)', perm_reason: 'Motivo ausencia',
+  km_applied: 'Kilometraje', km_count: 'Km', km_eur: 'Importe km (€)',
 };
 
 function AuditDiff({ prev, next }) {
@@ -66,6 +68,7 @@ export default function EditRecordModal({ recId, onClose }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [payCheck, setPayCheck] = useState(false);
   const [payExt, setPayExt] = useState(0);
+  const [kmEur, setKmEur] = useState('');
   // Actor-specific fields
   const [actorCited, setActorCited] = useState('');
   const [actorEnd, setActorEnd] = useState('');
@@ -96,6 +99,7 @@ export default function EditRecordModal({ recId, onClose }) {
     const prevPay = paid.find(p => p.eid === rec.eid && p.date === rec.date);
     if (prevPay) { setPayCheck(true); setPayExt(prevPay.extMin || 0); }
     else { setPayCheck(false); setPayExt(0); }
+    setKmEur(rec.kmEur != null ? String(rec.kmEur) : '');
   }, [rec, emp, paid]);
 
   if (!rec || !emp) return null;
@@ -118,6 +122,7 @@ export default function EditRecordModal({ recId, onClose }) {
         special: false, specialNote: '', catUp: false, catUpNote: '',
         citedIn: '', citedOut: '',
         actorCited: null, actorEnd: null,
+        kmApplied: false, kmCount: null, kmEur: null,
       });
       removePaid(rec.eid, rec.date);
     } else if (isActor) {
@@ -129,6 +134,7 @@ export default function EditRecordModal({ recId, onClose }) {
         actorMakeup: +actorMakeup, actorTravelIn: +actorTravelIn,
         actorTravelOut: +actorTravelOut, actorBreak: +actorBreak,
         libranza: false, special: false, catUp: false,
+        kmEur: kmEur !== '' ? parseFloat(kmEur) : null,
       });
     } else {
       updateRec(recId, {
@@ -137,6 +143,7 @@ export default function EditRecordModal({ recId, onClose }) {
         special, specialNote: special ? specialNote : '',
         catUp, catUpNote: catUp ? catUpNote : '',
         libranza: false,
+        kmEur: kmEur !== '' ? parseFloat(kmEur) : null,
       });
       if (payCheck && parseFloat(payExt) > 0) {
         upsertPaid({ eid: rec.eid, date: rec.date, month: rec.date.slice(0, 7), ordMin: 0, extMin: parseFloat(payExt), note: `Extras ${fmtDate(rec.date)}` });
@@ -282,6 +289,22 @@ export default function EditRecordModal({ recId, onClose }) {
               )}
             </div>
           </>
+        )}
+        {(rec.kmApplied || rec.permMin > 0) && (
+          <div style={{ marginTop: '1rem', padding: '.8rem 1rem', background: 'var(--bg3)', borderRadius: 'var(--r)', border: '1px solid var(--border2)' }}>
+            {rec.permMin > 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: rec.kmApplied ? '.6rem' : 0 }}>
+                🩺 Ausencia parcial justificada: <b style={{ color: 'var(--text)' }}>{Math.round(rec.permMin / 60 * 100) / 100} h</b> · {rec.permReason || '—'} <span style={{ color: 'var(--text3)' }}>(no penaliza el saldo)</span>
+              </div>
+            )}
+            {rec.kmApplied && (
+              <div className="fg" style={{ marginBottom: 0 }}>
+                <label>🚗 Kilometraje — importe a pagar (€){rec.kmCount ? ` · ${rec.kmCount} km declarados` : ''}</label>
+                <input type="number" min={0} step="0.01" value={kmEur} onChange={e => setKmEur(e.target.value)} placeholder="Ej: 12.50" />
+                <span style={{ fontSize: 11, color: 'var(--text3)' }}>Este importe aparecerá en Informes y se podrá exportar a ClapPay.</span>
+              </div>
+            )}
+          </div>
         )}
         {/* Historial de cambios */}
         <div style={{ borderTop: '1px solid var(--border2)', marginTop: '1rem', paddingTop: '1rem' }}>

@@ -22,7 +22,9 @@ export default function Records() {
   const visibleEmps = filterDept ? emps.filter(e => e.dept === filterDept) : emps;
   const visibleEmpIds = new Set(visibleEmps.map(e => e.id));
 
-  let filtered = recs.filter(r => visibleEmpIds.has(r.eid));
+  // Los borradores (status 'draft') son el día en curso del empleado sin confirmar:
+  // no se muestran al admin hasta que el empleado pulsa "Confirmar fichaje".
+  let filtered = recs.filter(r => visibleEmpIds.has(r.eid) && r.status !== 'draft');
   if (filterEmp) filtered = filtered.filter(r => r.eid === filterEmp);
   if (filterStatus) filtered = filtered.filter(r => r.status === filterStatus);
   if (filterDateFrom) filtered = filtered.filter(r => r.date >= filterDateFrom);
@@ -148,6 +150,8 @@ export default function Records() {
                     {dayPaidExt > 0 && <span className="b bp" style={{ fontSize: 10 }}>💰{dayPaidExt}m</span>}
                     {rec.special && <span className="b ba" style={{ fontSize: 10 }}>⭐E</span>}
                     {rec.catUp && <span className="b bp" style={{ fontSize: 10 }}>⬆X</span>}
+                    {rec.permMin > 0 && <span className="b bp" style={{ fontSize: 10 }} title={rec.permReason || ''}>🩺{Math.round(rec.permMin / 60 * 100) / 100}h</span>}
+                    {rec.kmApplied && <span className="b bp" style={{ fontSize: 10 }} title={rec.kmCount ? `${rec.kmCount} km` : ''}>🚗 {rec.kmEur != null ? `${rec.kmEur}€` : 'sin valorar'}</span>}
                     {rec.libranza && <span className="b bt" style={{ fontSize: 10 }}>📅 Libranza</span>}
                     {workedOnFestivo && <span className="b by" style={{ fontSize: 10 }}>🟡 Festivo</span>}
                   </td>

@@ -3,6 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { fmtDate } from '../../lib/utils';
 import { useEnterKey } from '../../lib/useEnterKey';
 
+const PERM_REASONS = ['Médico (propio)', 'Acompañamiento a familiar', 'Asuntos propios', 'Deber público', 'Otro'];
+
 export default function EditDayModal({ empId, date, onClose }) {
   const { recs, emps, upsertRec } = useApp();
   const emp = emps.find(e => e.id === empId);
@@ -16,6 +18,11 @@ export default function EditDayModal({ empId, date, onClose }) {
   const [citedOut, setCitedOut] = useState('');
   const [brk, setBrk] = useState(0);
   const [obs, setObs] = useState('');
+  const [permH, setPermH] = useState('');
+  const [permReason, setPermReason] = useState(PERM_REASONS[0]);
+  const [kmOn, setKmOn] = useState(false);
+  const [kmCount, setKmCount] = useState('');
+  const [special, setSpecial] = useState(false);
   // Actor fields
   const [actorCited, setActorCited] = useState('08:00');
   const [actorEnd, setActorEnd] = useState('18:00');
@@ -33,6 +40,11 @@ export default function EditDayModal({ empId, date, onClose }) {
     setCitedOut(rec?.citedOut || emp.end);
     setBrk(rec?.brk != null ? rec.brk : emp.brk);
     setObs(rec?.obs || '');
+    setPermH(rec?.permMin ? String(Math.round(rec.permMin / 60 * 100) / 100) : '');
+    setPermReason(rec?.permReason || PERM_REASONS[0]);
+    setKmOn(!!rec?.kmApplied);
+    setKmCount(rec?.kmCount != null ? String(rec.kmCount) : '');
+    setSpecial(rec?.special || false);
     setActorCited(rec?.actorCited || rec?.entry || '08:00');
     setActorEnd(rec?.actorEnd || rec?.exit || '18:00');
     setActorMakeup(rec?.actorMakeup ?? 60);
@@ -44,6 +56,9 @@ export default function EditDayModal({ empId, date, onClose }) {
   if (!emp) return null;
 
   const handleSave = () => {
+    const permMin = parseFloat(permH) > 0 ? Math.round(parseFloat(permH) * 60) : 0;
+    const cnt = parseFloat(kmCount);
+    const kmFields = { kmApplied: kmOn, kmCount: kmOn && cnt > 0 ? cnt : null };
     if (isActor && !isLibranza) {
       upsertRec({
         id: rec?.id || crypto.randomUUID(),
@@ -55,6 +70,7 @@ export default function EditDayModal({ empId, date, onClose }) {
         actorCited, actorEnd,
         actorMakeup: +actorMakeup, actorTravelIn: +actorTravelIn,
         actorTravelOut: +actorTravelOut, actorBreak: +actorBreak,
+        permMin, permReason: permMin ? permReason : null, ...kmFields,
       });
     } else {
       upsertRec({
@@ -69,6 +85,11 @@ export default function EditDayModal({ empId, date, onClose }) {
         citedIn: isLibranza ? emp.start : citedIn,
         citedOut: isLibranza ? emp.end : citedOut,
         libranza: isLibranza || undefined,
+        permMin: isLibranza ? 0 : permMin,
+        permReason: !isLibranza && permMin ? permReason : null,
+        kmApplied: isLibranza ? false : kmFields.kmApplied,
+        kmCount: isLibranza ? null : kmFields.kmCount,
+        special: isLibranza ? false : special,
       });
     }
     onClose();
@@ -113,6 +134,29 @@ export default function EditDayModal({ empId, date, onClose }) {
               <div className="fg"><label>Citación salida</label><input type="time" value={citedOut} onChange={e => setCitedOut(e.target.value)} /></div>
             </div>
             <div className="fg"><label>Descanso real (min)</label><input type="number" value={brk} min={0} step={5} onChange={e => setBrk(e.target.value)} /></div>
+            <div className="frow">
+              <div className="fg">
+                <label>Ausencia parcial justificada</label>
+                <select value={permReason} onChange={e => setPermReason(e.target.value)}>
+                  {PERM_REASONS.map(r => <option key={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="fg"><label>Horas de ausencia</label><input type="number" min={0} step={0.25} value={permH} onChange={e => setPermH(e.target.value)} placeholder="0" /></div>
+            </div>
+            <div className="frow" style={{ alignItems: 'flex-end' }}>
+              <div className="fg">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} style={{ width: 16, height: 16 }} /> 🚗 Apliqué kilometraje
+                </label>
+              </div>
+              {kmOn && <div className="fg"><label>Km (opcional)</label><input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="0" /></div>}
+            </div>
+            <div className="fg">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={special} onChange={e => setSpecial(e.target.checked)} style={{ width: 16, height: 16 }} /> ⭐ Jornada especial
+              </label>
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: -4 }}>La ausencia parcial no penaliza tu saldo. El importe del kilometraje lo fija el administrador al revisar.</p>
           </>
         )}
 

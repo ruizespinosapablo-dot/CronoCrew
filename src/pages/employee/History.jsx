@@ -119,7 +119,7 @@ export default function History({ emp }) {
                       {!lib && c && c.comp > 0 && <span style={{ color: 'var(--coral)', fontWeight: 600 }}>−{fmt(c.comp)}</span>}
                       {!lib && c && c.accum === 0 && c.comp === 0 && <span style={{ color: 'var(--text3)' }}>0</span>}
                     </td>
-                    <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : <span className="b by">Pendiente</span>}</td>
+                    <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : rec.status === 'draft' ? <span className="b" style={{ background: 'var(--bg4)', color: 'var(--text2)' }}>📝 Borrador</span> : <span className="b by">Pendiente</span>}</td>
                     <td>{!isT && <button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
                   </tr>
                 );
@@ -207,6 +207,7 @@ export default function History({ emp }) {
                       {isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}
                       {fest && <span style={{ fontSize: 10, marginLeft: 3, padding: '1px 6px', borderRadius: 6, background: 'rgba(230,166,58,.15)', color: 'var(--amber)', fontWeight: 600 }}>Festivo</span>}
                       {rec.permMin > 0 && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }} title={rec.permReason || ''}>🩺 {Math.round(rec.permMin / 60 * 100) / 100}h just.</span>}
+                      {rec.kmApplied && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }} title={rec.kmCount ? `${rec.kmCount} km` : ''}>🚗 {rec.kmEur != null ? `${rec.kmEur} €` : 'km'}</span>}
                       {rec.special && <span className="b ba" style={{ fontSize: 10, marginLeft: 3 }}>⭐E</span>}
                       {rec.catUp && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>⬆</span>}
                       {dayPaidExtMin > 0 && <span className="b bp" style={{ fontSize: 10, marginLeft: 3 }}>💰{fmt(dayPaidExtMin)}</span>}
@@ -216,7 +217,7 @@ export default function History({ emp }) {
                     <td style={{ fontSize: 12, color: 'var(--text2)' }}>{rec.exit ? fmt(realBrk) : '—'}</td>
                     <td style={{ fontWeight: 700 }}>{lib ? '📅 Libranza' : (rec.exit ? fmt(c.net) : '—')}</td>
                     <td>{saldoEl}</td>
-                    <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : <span className="b by">Pendiente</span>}</td>
+                    <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : rec.status === 'draft' ? <span className="b" style={{ background: 'var(--bg4)', color: 'var(--text2)' }}>📝 Borrador</span> : <span className="b by">Pendiente</span>}</td>
                     <td style={{ color: 'var(--text2)', fontSize: 12 }}>{rec.obs || '—'}</td>
                     <td>{!isT && <button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
                   </tr>

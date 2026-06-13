@@ -19,6 +19,8 @@ export default function Clock({ emp }) {
   const [obs, setObs] = useState('');
   const [permH, setPermH] = useState('');
   const [permReason, setPermReason] = useState(PERM_REASONS[0]);
+  const [kmOn, setKmOn] = useState(false);
+  const [kmCount, setKmCount] = useState('');
 
   // Past days filing state
   const [selectedPast, setSelectedPast] = useState('');
@@ -55,10 +57,23 @@ export default function Clock({ emp }) {
   const rec = recs.find(r => r.eid === emp.id && r.date === TODAY);
   const calc = rec?.exit ? calcRec({ ...rec, citedIn, citedOut, brk: parseInt(brkMins) || emp.brk }, emp) : null;
 
+  // Mientras el día es 'draft' el empleado edita libremente. Al confirmar pasa a
+  // 'pending' (lo ve el admin) y se bloquea la edición en Fichar.
+  const locked = !!rec && rec.status !== 'draft' && !rec.absence && !rec.libranza;
+  const canConfirm = !locked && !!rec?.entry;
+
+  useEffect(() => {
+    setKmOn(!!rec?.kmApplied);
+    setKmCount(rec?.kmCount != null ? String(rec.kmCount) : '');
+  }, [rec?.id, rec?.kmApplied, rec?.kmCount]);
+
   const citedNet = t2m(citedOut) - t2m(citedIn) - (parseInt(brkMins) || emp.brk);
   const isLongCited = citedNet > 555; // > 9h15m
 
+  const LOCK_MSG = 'Fichaje ya confirmado. Para cambios, edítalo desde tu Historial.';
+
   const applyCited = () => {
+    if (locked) { showToast(LOCK_MSG, 'warning'); return; }
     if (!rec) { showToast('Debes fichar primero.', 'warning'); return; }
     upsertRec({
       ...rec,
@@ -94,6 +109,7 @@ export default function Clock({ emp }) {
   };
 
   const doFich = (type, method) => {
+    if (locked) { showToast(LOCK_MSG, 'warning'); return; }
     let t;
     if (method === 'def') t = type === 'in' ? citedIn : citedOut;
     else if (method === 'now') t = nowHHMM();
@@ -109,12 +125,12 @@ export default function Clock({ emp }) {
         eid: emp.id, date: TODAY,
         entry: t, exit: existing?.exit || '',
         brk: parseInt(brkMins) || emp.brk,
-        obs: existing?.obs || '', status: 'pending',
+        obs: existing?.obs || '', status: 'draft',
         method: methodLabel, citedIn, citedOut,
       });
     } else {
       if (!existing) { showToast('Debes fichar la entrada antes de registrar la salida.', 'warning'); return; }
-      upsertRec({ ...existing, exit: t, brk: parseInt(brkMins) || emp.brk, status: 'pending' });
+      upsertRec({ ...existing, exit: t, brk: parseInt(brkMins) || emp.brk, status: 'draft' });
     }
   };
 
@@ -139,25 +155,46 @@ export default function Clock({ emp }) {
   };
 
   const savePerm = () => {
+    if (locked) { showToast(LOCK_MSG, 'warning'); return; }
     const h = parseFloat(permH);
     if (!h || h <= 0) { showToast('Indica las horas de la ausencia.', 'warning'); return; }
     const base = recs.find(r => r.eid === emp.id && r.date === TODAY) || {
       id: crypto.randomUUID(), eid: emp.id, date: TODAY, entry: '', exit: '',
-      brk: emp.brk, obs: '', status: 'pending', method: '—', citedIn, citedOut,
+      brk: emp.brk, obs: '', status: 'draft', method: '—', citedIn, citedOut,
     };
     upsertRec({ ...base, permMin: Math.round(h * 60), permReason });
     setPermH('');
     showToast(`Ausencia parcial registrada: ${h} h (${permReason})`, 'success');
   };
 
+  const saveKm = (on) => {
+    if (locked) { showToast(LOCK_MSG, 'warning'); return; }
+    const base = recs.find(r => r.eid === emp.id && r.date === TODAY) || {
+      id: crypto.randomUUID(), eid: emp.id, date: TODAY, entry: '', exit: '',
+      brk: emp.brk, obs: '', status: 'draft', method: '—', citedIn, citedOut,
+    };
+    const cnt = parseFloat(kmCount);
+    upsertRec({ ...base, kmApplied: on, kmCount: on && cnt > 0 ? cnt : null });
+    showToast(on ? 'Kilometraje marcado. El administrador le asignará un importe.' : 'Kilometraje retirado.', on ? 'success' : 'info');
+  };
+
+  const confirmFichaje = () => {
+    const r = recs.find(x => x.eid === emp.id && x.date === TODAY);
+    if (!r || !r.entry) { showToast('Ficha al menos la entrada antes de confirmar.', 'warning'); return; }
+    if (!r.exit && !window.confirm('Aún no has fichado la salida. ¿Confirmar el fichaje del día igualmente?')) return;
+    upsertRec({ ...r, status: 'pending' });
+    showToast('✓ Fichaje confirmado y enviado a administración.', 'success');
+  };
+
   const saveObs = () => {
+    if (locked) { showToast(LOCK_MSG, 'warning'); return; }
     if (!obs.trim()) { showToast('Escribe una observación antes de guardar.', 'warning'); return; }
     const existing = recs.find(r => r.eid === emp.id && r.date === TODAY);
     upsertRec({
       id: existing?.id || crypto.randomUUID(),
       eid: emp.id, date: TODAY,
       entry: existing?.entry || '', exit: existing?.exit || '',
-      brk: emp.brk, obs: obs.trim(), status: 'pending',
+      brk: emp.brk, obs: obs.trim(), status: 'draft',
       method: '—', citedIn, citedOut,
     });
     setObs('');
@@ -260,6 +297,12 @@ export default function Clock({ emp }) {
           )}
         </div>
         <div className="cp-right">
+          {locked && (
+            <div style={{ background: 'rgba(201,242,62,0.08)', border: '1px solid var(--accent)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem', fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
+              ✓ Fichaje confirmado · pendiente de revisión. Para corregir algo, edítalo desde tu Historial.
+            </div>
+          )}
+          <div style={{ opacity: locked ? 0.5 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
             <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Hora citada hoy</span>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -294,6 +337,28 @@ export default function Clock({ emp }) {
               {rec?.permMin > 0 && <span className="b bp" style={{ fontSize: 11 }}>{Math.round(rec.permMin / 60 * 100) / 100} h · {rec.permReason}</span>}
             </div>
             <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>No penaliza tu saldo: esas horas se descuentan de la jornada esperada del día.</p>
+          </div>
+          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Kilometraje</span>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                🚗 Apliqué kilometraje hoy
+              </label>
+              {kmOn && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="0" style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 80, outline: 'none' }} />
+                  <span style={{ fontSize: 12, color: 'var(--text2)' }}>km (opcional)</span>
+                </div>
+              )}
+              <button className="btn-sm" onClick={() => saveKm(kmOn)}>Aplicar</button>
+              {rec?.kmApplied && (
+                <span className="b bp" style={{ fontSize: 11 }}>
+                  🚗 {rec.kmEur != null ? `${rec.kmEur} €` : `${rec.kmCount ? rec.kmCount + ' km · ' : ''}pendiente de valorar`}
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>El administrador le asignará el importe en € al revisar tu jornada.</p>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: '.85rem' }}>
             <div className="co-group">
@@ -331,6 +396,13 @@ export default function Clock({ emp }) {
             </div>
             <button className="btn-accent" onClick={saveObs} style={{ flexShrink: 0, padding: '8px 14px', fontSize: 12 }}>Guardar obs.</button>
           </div>
+          </div>
+          {!locked && rec?.entry && (
+            <div style={{ marginTop: '.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', background: 'rgba(201,242,62,0.06)', border: '1px solid var(--accent)', borderRadius: 'var(--r)', padding: '.8rem 1rem' }}>
+              <span style={{ fontSize: 12, color: 'var(--text2)' }}>Cuando termines, confirma tu fichaje para enviarlo a administración. Mientras no lo confirmes queda en <b style={{ color: 'var(--accent)' }}>borrador</b> y solo lo ves tú.</span>
+              <button className="btn-accent" onClick={confirmFichaje} disabled={!canConfirm} style={{ flexShrink: 0 }}>✓ Confirmar fichaje</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -340,10 +412,13 @@ export default function Clock({ emp }) {
           {rec && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               {!rec.absence && rec.status === 'approved' && <span className="b bg">Aprobado</span>}
-              {!rec.absence && rec.status !== 'approved' && <span className="b by">Pendiente</span>}
+              {!rec.absence && rec.status === 'pending' && <span className="b by">Pendiente</span>}
+              {!rec.absence && rec.status === 'draft' && <span className="b" style={{ background: 'var(--bg4)', color: 'var(--text2)' }}>📝 Borrador</span>}
               {rec.special && <span className="b ba">⭐ Jornada especial</span>}
               {rec.catUp && <span className="b bp">⬆ Subida categoría</span>}
               {rec.libranza && <span className="b bp">📅 Libranza</span>}
+              {rec.permMin > 0 && <span className="b bp" title={rec.permReason || ''}>🩺 {Math.round(rec.permMin / 60 * 100) / 100}h just.</span>}
+              {rec.kmApplied && <span className="b bp">🚗 {rec.kmEur != null ? `${rec.kmEur} €` : (rec.kmCount ? `${rec.kmCount} km` : 'kilometraje')}</span>}
               <span style={{ fontSize: 11, color: 'var(--text3)' }}>Contacta con administración para corregir errores</span>
             </span>
           )}
