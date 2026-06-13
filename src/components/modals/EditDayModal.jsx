@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { fmtDate } from '../../lib/utils';
+import { fmtDate, t2m } from '../../lib/utils';
 import { useEnterKey } from '../../lib/useEnterKey';
 
 const PERM_REASONS = ['Médico (propio)', 'Acompañamiento a familiar', 'Asuntos propios', 'Deber público', 'Otro'];
@@ -22,7 +22,6 @@ export default function EditDayModal({ empId, date, onClose }) {
   const [permReason, setPermReason] = useState(PERM_REASONS[0]);
   const [kmOn, setKmOn] = useState(false);
   const [kmCount, setKmCount] = useState('');
-  const [special, setSpecial] = useState(false);
   // Actor fields
   const [actorCited, setActorCited] = useState('08:00');
   const [actorEnd, setActorEnd] = useState('18:00');
@@ -44,7 +43,6 @@ export default function EditDayModal({ empId, date, onClose }) {
     setPermReason(rec?.permReason || PERM_REASONS[0]);
     setKmOn(!!rec?.kmApplied);
     setKmCount(rec?.kmCount != null ? String(rec.kmCount) : '');
-    setSpecial(rec?.special || false);
     setActorCited(rec?.actorCited || rec?.entry || '08:00');
     setActorEnd(rec?.actorEnd || rec?.exit || '18:00');
     setActorMakeup(rec?.actorMakeup ?? 60);
@@ -59,6 +57,9 @@ export default function EditDayModal({ empId, date, onClose }) {
     const permMin = parseFloat(permH) > 0 ? Math.round(parseFloat(permH) * 60) : 0;
     const cnt = parseFloat(kmCount);
     const kmFields = { kmApplied: kmOn, kmCount: kmOn && cnt > 0 ? cnt : null };
+    // Jornada especial: automática si la citación supera 9h15 (555 min), igual que en Fichar.
+    const citedNetMin = t2m(citedOut) - t2m(citedIn) - (parseInt(brk) || 0);
+    const autoSpecial = citedNetMin > 555;
     if (isActor && !isLibranza) {
       upsertRec({
         id: rec?.id || crypto.randomUUID(),
@@ -89,7 +90,7 @@ export default function EditDayModal({ empId, date, onClose }) {
         permReason: !isLibranza && permMin ? permReason : null,
         kmApplied: isLibranza ? false : kmFields.kmApplied,
         kmCount: isLibranza ? null : kmFields.kmCount,
-        special: isLibranza ? false : special,
+        special: isLibranza ? false : autoSpecial,
       });
     }
     onClose();
@@ -151,12 +152,7 @@ export default function EditDayModal({ empId, date, onClose }) {
               </div>
               {kmOn && <div className="fg"><label>Km (opcional)</label><input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="0" /></div>}
             </div>
-            <div className="fg">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={special} onChange={e => setSpecial(e.target.checked)} style={{ width: 16, height: 16 }} /> ⭐ Jornada especial
-              </label>
-            </div>
-            <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: -4 }}>La ausencia parcial no penaliza tu saldo. El importe del kilometraje lo fija el administrador al revisar.</p>
+            <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: -4 }}>La ausencia parcial no penaliza tu saldo. El importe del kilometraje lo fija el administrador al revisar. La jornada especial se marca sola si la citación supera 9h15.</p>
           </>
         )}
 
