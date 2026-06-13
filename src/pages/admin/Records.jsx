@@ -5,9 +5,10 @@ import { DEPARTMENTS } from '../../lib/constants';
 import EditRecordModal from '../../components/modals/EditRecordModal';
 
 // Descansos mínimos (convenios + STS 274/2026). Fáciles de ajustar.
-const REST_DAY_H = 12;        // técnicos: entre fin de jornada e inicio de la siguiente
-const REST_DAY_ACTOR_H = 13;  // actores: convenio de actores (mín. 13h entre jornadas)
-const REST_WEEKEND_H = 60;    // descanso semanal (fin de semana de por medio)
+const REST_DAY_H = 12;            // técnicos: entre fin de jornada e inicio de la siguiente
+const REST_DAY_ACTOR_H = 13;     // actores: convenio de actores (mín. 13h entre jornadas)
+const REST_WEEKEND_H = 60;       // técnicos: descanso semanal (STS 274/2026)
+const REST_WEEKEND_ACTOR_H = 48; // actores: descanso semanal según su convenio
 
 // ¿Hay un sábado o domingo entre dos fechas (exclusivas)? → aplica descanso semanal.
 function weekendBetween(d1, d2) {
@@ -47,6 +48,7 @@ export default function Records() {
     Object.entries(byEmp).forEach(([eid, list]) => {
       const isActor = emps.find(e => e.id === eid)?.dept === 'Actores';
       const dayH = isActor ? REST_DAY_ACTOR_H : REST_DAY_H;
+      const weekendH = isActor ? REST_WEEKEND_ACTOR_H : REST_WEEKEND_H;
       list.sort((a, b) => a.date.localeCompare(b.date));
       for (let i = 1; i < list.length; i++) {
         const prev = list[i - 1], cur = list[i];
@@ -58,8 +60,9 @@ export default function Records() {
         const curEntryDT = new Date(cur.date + 'T00:00:00').getTime() + t2m(cur.entry) * 60000;
         const gapH = (curEntryDT - prevExitDT) / 3600000;
         if (gapH < 0) continue;
-        const reqH = weekendBetween(prev.date, cur.date) ? REST_WEEKEND_H : dayH;
-        if (gapH < reqH) info[cur.id] = { gapH, reqH, prevDate: prev.date };
+        const isWeekend = weekendBetween(prev.date, cur.date);
+        const reqH = isWeekend ? weekendH : dayH;
+        if (gapH < reqH) info[cur.id] = { gapH, reqH, prevDate: prev.date, weekend: isWeekend };
       }
     });
     return info;
@@ -204,7 +207,7 @@ export default function Records() {
                     {rec.kmApplied && <span className="b bp" style={{ fontSize: 10 }} title={rec.kmCount ? `${rec.kmCount} km` : ''}>🚗 {rec.kmEur != null ? `${rec.kmEur}€` : 'sin valorar'}</span>}
                     {rec.libranza && <span className="b bt" style={{ fontSize: 10 }}>📅 Libranza</span>}
                     {workedOnFestivo && <span className="b by" style={{ fontSize: 10 }}>🟡 Festivo</span>}
-                    {rv && <span className="b bc" style={{ fontSize: 10 }} title={`Descanso insuficiente: ${rv.gapH.toFixed(1)}h desde la salida del ${fmtDate(rv.prevDate)} (mínimo ${rv.reqH}h ${rv.reqH === REST_WEEKEND_H ? 'semanal' : 'entre jornadas'})`}>⛔ {rv.gapH.toFixed(1)}h descanso</span>}
+                    {rv && <span className="b bc" style={{ fontSize: 10 }} title={`Descanso insuficiente: ${rv.gapH.toFixed(1)}h desde la salida del ${fmtDate(rv.prevDate)} (mínimo ${rv.reqH}h ${rv.weekend ? 'semanal' : 'entre jornadas'})`}>⛔ {rv.gapH.toFixed(1)}h descanso</span>}
                   </td>
                   <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : <span className="b by">Pendiente</span>}</td>
                   <td style={{ color: 'var(--text2)', fontSize: 12, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.obs || '—'}</td>
