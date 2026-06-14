@@ -538,8 +538,12 @@ export function AppProvider({ children }) {
 
   const importExpressLink = useCallback(async (link, withPayment = false) => {
     const prodId = currentUserRef.current?.productionId;
-    // 1. Buscar o crear empleado
-    let eid = emps.find(e => e.dni && e.dni === link.dni && link.dni)?.id;
+    // 1. Buscar o crear empleado — se enlaza por DNI (normalizado: mayúsculas y
+    //    sin espacios/guiones), que es lo propio de cada persona. Así, aunque el
+    //    nombre se escriba distinto entre días, los fichajes van al mismo empleado.
+    const normDni = s => (s || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+    const linkDni = normDni(link.dni);
+    let eid = linkDni ? emps.find(e => normDni(e.dni) === linkDni)?.id : undefined;
     if (!eid) {
       const slug = link.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 28);
       eid = slug + '_' + link.id.slice(0, 6);

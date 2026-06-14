@@ -30,9 +30,10 @@ export default function ExpressFilings() {
 
   const handleCreate = async () => {
     if (!name.trim()) { showToast('Indica el nombre del trabajador.', 'warning'); return; }
+    if (!dni.trim())  { showToast('Indica el DNI: enlaza los fichajes de esta persona aunque cambie algo el nombre.', 'warning'); return; }
     if (!date)        { showToast('Indica la fecha.', 'warning'); return; }
     setCreating(true);
-    const id = await addExpressLink({ name: name.trim(), dni, dept, role, date, citedIn, citedOut, ch: parseInt(ch), brk: parseInt(brk) });
+    const id = await addExpressLink({ name: name.trim(), dni: dni.trim(), dept, role, date, citedIn, citedOut, ch: parseInt(ch), brk: parseInt(brk) });
     if (id) {
       setNewLinkId(id);
       setName(''); setDni(''); setRole('');
@@ -69,8 +70,8 @@ export default function ExpressFilings() {
             <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Pedro Ruiz García" autoComplete="off" />
           </div>
           <div className="fg">
-            <label>DNI</label>
-            <input type="text" value={dni} onChange={e => setDni(e.target.value)} placeholder="12345678J" />
+            <label>DNI *</label>
+            <input type="text" value={dni} onChange={e => setDni(e.target.value)} placeholder="12345678J" autoComplete="off" />
           </div>
         </div>
         <div className="frow" style={{ marginBottom: '1rem' }}>
