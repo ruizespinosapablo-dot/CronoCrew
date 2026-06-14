@@ -3,12 +3,10 @@ import { useApp } from '../../context/AppContext';
 import { calcRec, calcPeriod, fmt, fmtDate, getToday } from '../../lib/utils';
 import { DEPARTMENTS } from '../../lib/constants';
 import EditRecordModal from '../../components/modals/EditRecordModal';
-import NewEmployeeModal from '../../components/modals/NewEmployeeModal';
 
 export default function Dashboard({ onNavigate }) {
   const { emps, recs, paid, empRequests } = useApp();
   const [editRecId, setEditRecId] = useState(null);
-  const [showNewEmp, setShowNewEmp] = useState(false);
 
   const today = getToday();
   const activeEmps = emps.filter(e => (!e.cStart || e.cStart <= today) && (!e.cEnd || e.cEnd >= today));
@@ -25,9 +23,6 @@ export default function Dashboard({ onNavigate }) {
     <>
       <div className="ph">
         <div><h1>Panel de control</h1><p>{dateStr}</p></div>
-        <button className="btn-accent" onClick={() => setShowNewEmp(true)}>
-          <i className="ti ti-plus" /> Nuevo empleado
-        </button>
       </div>
       <div className="sg">
         <div className="sc"><div className="sc-label">Empleados activos</div><div className="sc-val cy">{activeEmps.length}</div></div>
@@ -120,7 +115,6 @@ export default function Dashboard({ onNavigate }) {
       })}
 
       {editRecId && <EditRecordModal recId={editRecId} onClose={() => setEditRecId(null)} />}
-      {showNewEmp && <NewEmployeeModal onClose={() => setShowNewEmp(false)} />}
     </>
   );
 }
