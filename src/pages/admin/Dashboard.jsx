@@ -9,7 +9,7 @@ export default function Dashboard({ onNavigate }) {
   const [editRecId, setEditRecId] = useState(null);
 
   const today = getToday();
-  const activeEmps = emps.filter(e => (!e.cStart || e.cStart <= today) && (!e.cEnd || e.cEnd >= today));
+  const activeEmps = emps.filter(e => !e.archived && (!e.cStart || e.cStart <= today) && (!e.cEnd || e.cEnd >= today));
   const todayRecs = recs.filter(r => r.date === today);
   const present = todayRecs.filter(r => r.entry && !r.absence).length;
   const pending = recs.filter(r => r.status === 'pending').length;
@@ -69,8 +69,8 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       <h2 style={{ margin: '2rem 0 1rem', fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Resumen por departamento</h2>
-      {DEPARTMENTS.filter(dept => emps.some(e => e.dept === dept)).map(dept => {
-        const deptEmps = emps.filter(e => e.dept === dept);
+      {DEPARTMENTS.filter(dept => emps.some(e => e.dept === dept && !e.archived)).map(dept => {
+        const deptEmps = emps.filter(e => e.dept === dept && !e.archived);
         return (
           <div key={dept} className="tc" style={{ marginBottom: '1.25rem' }}>
             <div className="tch"><h3 style={{ margin: 0 }}>{dept}</h3></div>

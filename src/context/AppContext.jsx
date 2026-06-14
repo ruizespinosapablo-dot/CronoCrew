@@ -45,6 +45,7 @@ const mapEmp = row => ({
   brk: row.brk, ch: row.ch, cStart: row.c_start, cEnd: row.c_end,
   setupComplete: row.setup_complete ?? false,
   isReinforcement: row.is_reinforcement ?? false,
+  archived: row.archived ?? false,
 });
 
 const mapRec = row => ({

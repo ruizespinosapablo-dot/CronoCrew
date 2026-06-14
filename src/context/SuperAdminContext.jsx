@@ -19,7 +19,7 @@ export function SuperAdminProvider({ children }) {
         supabase.from('companies').select('*').order('name'),
         supabase.from('productions').select('*').order('name'),
         supabase.from('profiles').select('*').order('name'),
-        supabase.from('emps').select('id, name, role, dept, production_id, c_start, c_end, is_reinforcement').order('name'),
+        supabase.from('emps').select('id, name, role, dept, production_id, c_start, c_end, is_reinforcement, archived').order('name'),
       ]);
       setCompanies(cRes.data || []);
       setProductions(pRes.data || []);
@@ -130,12 +130,29 @@ export function SuperAdminProvider({ children }) {
     }
   }, [showToast]);
 
+  // Borrar persona conservando fichajes: elimina acceso+perfil y archiva la ficha.
+  const deleteUser = useCallback(async (empId) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user', { body: { empId } });
+      if (error || data?.error) {
+        showToast('No se pudo borrar: ' + (data?.error || error.message), 'error');
+        return false;
+      }
+      showToast('Usuario borrado. Sus fichajes se conservan por ley.', 'success');
+      await load();
+      return true;
+    } catch (err) {
+      showToast('Error al borrar: ' + err.message, 'error');
+      return false;
+    }
+  }, [showToast, load]);
+
   return (
     <SuperAdminContext.Provider value={{
       companies, productions, users, emps, loading, reload: load,
       createCompany, updateCompany,
       createProduction, updateProduction,
-      createProfile, updateProfile, createUser,
+      createProfile, updateProfile, createUser, deleteUser,
     }}>
       {children}
     </SuperAdminContext.Provider>

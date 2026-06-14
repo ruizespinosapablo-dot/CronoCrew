@@ -14,7 +14,7 @@ const activeInMonth = (emp, month) => {
 };
 
 export default function Overview() {
-  const { companies, productions, emps } = useSuperAdmin();
+  const { companies, productions, emps, deleteUser } = useSuperAdmin();
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [filterCompany, setFilterCompany] = useState('');
   const [filterType, setFilterType] = useState('all'); // all | fijo | refuerzo
@@ -43,9 +43,14 @@ export default function Overview() {
 
   // Empleados activos en el mes (con filtros aplicados)
   const activeEmps = useMemo(
-    () => emps.filter(e => activeInMonth(e, month) && passType(e) && passCompany(e)),
+    () => emps.filter(e => !e.archived && activeInMonth(e, month) && passType(e) && passCompany(e)),
     [emps, month, filterType, filterCompany, prodToCompany],
   );
+
+  const handleDelete = async (e) => {
+    if (!window.confirm(`¿Borrar a ${e.name}?\n\nSe elimina su cuenta de acceso y su ficha. Sus fichajes se CONSERVAN (obligación legal de registro horario). Esta acción no se puede deshacer.`)) return;
+    await deleteUser(e.id);
+  };
   const fijos = activeEmps.filter(e => !e.is_reinforcement).length;
   const refuerzos = activeEmps.filter(e => e.is_reinforcement).length;
 
@@ -131,7 +136,7 @@ export default function Overview() {
         <div style={{ maxHeight: 420, overflowY: 'auto' }}>
           <table>
             <thead>
-              <tr><th>Nombre</th><th>Productora</th><th>Cargo / Depto.</th><th>Tipo</th></tr>
+              <tr><th>Nombre</th><th>Productora</th><th>Cargo / Depto.</th><th>Tipo</th><th></th></tr>
             </thead>
             <tbody>
               {activeEmps.map(e => (
@@ -142,10 +147,13 @@ export default function Overview() {
                   <td>{e.is_reinforcement
                     ? <span className="b ba">⚡ Refuerzo</span>
                     : <span className="b bt">Fijo</span>}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="btn-danger" onClick={() => handleDelete(e)} title="Borrar usuario (conserva fichajes)">🗑 Borrar</button>
+                  </td>
                 </tr>
               ))}
               {activeEmps.length === 0 && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text3)', padding: '1.5rem' }}>Nadie activo con estos filtros en {monthLabel(month)}</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text3)', padding: '1.5rem' }}>Nadie activo con estos filtros en {monthLabel(month)}</td></tr>
               )}
             </tbody>
           </table>

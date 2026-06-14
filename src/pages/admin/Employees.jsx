@@ -12,6 +12,7 @@ export default function Employees() {
 
   // Empleados activos a día de hoy (según fechas de contrato)
   const activeEmps = emps.filter(e =>
+    !e.archived &&
     (!e.cStart || e.cStart <= today) &&
     (!e.cEnd || e.cEnd >= today)
   );
