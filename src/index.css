@@ -8,7 +8,7 @@
   --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);--border3:rgba(255,255,255,.24);
   --text:#F2F3F8;--text2:#B3B9D0;--text3:#737A9C;--chalk:#EEF0F4;
   /* Acento de producto: ClapTime = Lima. teal/coral/amber funcionales; purple = reserva violeta */
-  --accent:#C9F23E;--teal:#33D6C0;--coral:#FF6F4D;--purple:#A485F2;--green:#C9F23E;--amber:#E6A63A;
+  --accent:#C9F23E;--teal:#33D6C0;--coral:#FF6F4D;--purple:#A485F2;--green:#4ADE80;--amber:#E6A63A;
   --fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
   --r:10px;--rl:16px;--rp:999px;
 }
