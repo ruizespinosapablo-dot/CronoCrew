@@ -3,7 +3,28 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { fmtDate } from '../../lib/utils';
 
-const TYPE_CLASS = { 'Vacaciones': 'bp', 'Baja médica': 'bc', 'Permiso médico': 'by', 'Asunto personal': 'bx', 'Maternidad/Paternidad': 'bt', 'Otro': 'bx' };
+// Colores de badge por tipo de permiso (registro).
+const TYPE_CLASS = {
+  'Vacaciones': 'bp',
+  'Baja médica (IT)': 'bc',
+  'Matrimonio / pareja de hecho': 'ba',
+  'Fallecimiento de familiar': 'bx',
+  'Hospitalización / enfermedad grave de familiar': 'bc',
+  'Nacimiento / Maternidad / Paternidad': 'bt',
+  'Lactancia': 'bt',
+  'Traslado de domicilio': 'bx',
+  'Deber inexcusable (público)': 'by',
+  'Funciones sindicales / representación': 'bt',
+  'Exámenes / formación': 'bp',
+  'Fuerza mayor familiar': 'bc',
+  'Asuntos propios': 'bx',
+  'Permiso médico (día completo)': 'by',
+  'Otro': 'bx',
+};
+// Tipos disponibles en "Otros permisos" (día completo). Excluye Vacaciones,
+// que tiene su propia sección, y las ausencias por horas (médico/acompañamiento),
+// que se registran en Fichar como ausencia parcial.
+const OTHER_TYPES = Object.keys(TYPE_CLASS).filter(t => t !== 'Vacaciones');
 
 export default function Permissions() {
   const { emps, adminPerms, addAdminPerm, removeAdminPerm, festivos, addFestivo, removeFestivo } = useApp();
@@ -14,7 +35,7 @@ export default function Permissions() {
   const [vacEnd, setVacEnd] = useState('');
   const [vacNote, setVacNote] = useState('');
   const [othEmp, setOthEmp] = useState(emps[0]?.id || '');
-  const [othType, setOthType] = useState('Baja médica');
+  const [othType, setOthType] = useState(OTHER_TYPES[0]);
   const [othStart, setOthStart] = useState('');
   const [othEnd, setOthEnd] = useState('');
   const [othNote, setOthNote] = useState('');
@@ -123,7 +144,7 @@ export default function Permissions() {
 
       <div className="card-section">
         <h3>📋 Otros permisos</h3>
-        <p className="sub">Bajas, permisos médicos, asuntos personales, etc.</p>
+        <p className="sub">Permisos de día(s) completo(s) según convenio. Las ausencias por horas (consulta médica propia, acompañamiento) se registran en Fichar como ausencia parcial.</p>
         <div className="frow">
           <div className="fg">
             <label>Empleado</label>
@@ -134,7 +155,7 @@ export default function Permissions() {
           <div className="fg">
             <label>Tipo</label>
             <select value={othType} onChange={e => setOthType(e.target.value)}>
-              {Object.keys(TYPE_CLASS).map(t => <option key={t}>{t}</option>)}
+              {OTHER_TYPES.map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
         </div>
