@@ -204,17 +204,23 @@ export default function ActorClock({ emp }) {
               <input type="text" value={obs} onChange={e => setObs(e.target.value)} placeholder="Opcional" />
             </div>
 
-            {preview && (
-              <div style={{ background: 'var(--bg4)', borderRadius: 8, padding: '.6rem .9rem', marginBottom: '.75rem', fontSize: 12 }}>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  <span style={{ color: 'var(--text3)' }}>Efectivo: <b style={{ color: 'var(--text)' }}>{fmt(preview.net)}</b></span>
-                  {preview.makeupExtra > 0 && <span style={{ color: 'var(--text3)' }}>Caract. extra: <b style={{ color: 'var(--teal)' }}>+{fmt(preview.makeupExtra)}</b></span>}
-                  {preview.travelExtra > 0 && <span style={{ color: 'var(--text3)' }}>Viaje extra: <b style={{ color: 'var(--teal)' }}>+{fmt(preview.travelExtra)}</b></span>}
-                  {preview.accum > 0 && <span>Acumulado: <b style={{ color: 'var(--teal)' }}>+{fmt(preview.accum)}</b></span>}
-                  {preview.comp > 0 && <span>Compensado: <b style={{ color: 'var(--coral)' }}>−{fmt(preview.comp)}</b></span>}
+            {preview && (() => {
+              const contractMin = emp.ch * 60;
+              const hoursOnly = preview.net - preview.makeupExtra - preview.travelExtra - contractMin; // acum/comp solo horas
+              const totalSaldo = preview.net - contractMin;                                            // acum/comp total
+              const sgn = v => (v > 0 ? '+' : '') + fmt(v);
+              const col = v => (v > 0 ? 'var(--teal)' : v < 0 ? 'var(--coral)' : 'var(--text3)');
+              return (
+                <div style={{ background: 'var(--bg4)', borderRadius: 8, padding: '.6rem .9rem', marginBottom: '.75rem', fontSize: 12 }}>
+                  <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text3)' }}>Horas (acum/comp): <b style={{ color: col(hoursOnly) }}>{sgn(hoursOnly)}</b></span>
+                    <span style={{ color: 'var(--text3)' }}>Caracterización extra: <b style={{ color: col(preview.makeupExtra) }}>{sgn(preview.makeupExtra)}</b></span>
+                    <span style={{ color: 'var(--text3)' }}>Viajes extra: <b style={{ color: col(preview.travelExtra) }}>{sgn(preview.travelExtra)}</b></span>
+                    <span style={{ borderLeft: '1px solid var(--border2)', paddingLeft: '1.25rem', color: 'var(--text2)' }}>Total (acum/comp): <b style={{ color: col(totalSaldo) }}>{sgn(totalSaldo)}</b></span>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button className="btn-accent" onClick={saveToday}>Registrar jornada</button>
