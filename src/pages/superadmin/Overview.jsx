@@ -19,6 +19,18 @@ export default function Overview() {
   const [filterCompany, setFilterCompany] = useState('');
   const [filterType, setFilterType] = useState('all'); // all | fijo | refuerzo
 
+  // Opciones de mes con nombre (24 meses atrás → 2 adelante)
+  const monthOptions = useMemo(() => {
+    const now = new Date(), opts = [];
+    for (let i = 2; i >= -23; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const name = MONTHS[d.getMonth()];
+      opts.push({ value, label: `${name.charAt(0).toUpperCase()}${name.slice(1)} ${d.getFullYear()}` });
+    }
+    return opts;
+  }, []);
+
   const prodToCompany = useMemo(() => {
     const m = {};
     productions.forEach(p => { m[p.id] = p.company_id; });
@@ -54,7 +66,9 @@ export default function Overview() {
 
       {/* Filtros */}
       <div className="fb">
-        <input type="month" value={month} onChange={e => setMonth(e.target.value)} title="Mes" />
+        <select value={month} onChange={e => setMonth(e.target.value)} title="Mes">
+          {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
         <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)}>
           <option value="">Todas las productoras</option>
           {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
