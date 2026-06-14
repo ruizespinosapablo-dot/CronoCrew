@@ -348,7 +348,19 @@ export function AppProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    // Cierre de sesión a prueba de cuelgues: si otra pestaña retiene el lock de
+    // Supabase, signOut() puede no resolver y el botón "no haría nada". Limpiamos
+    // el token local, intentamos signOut con límite de tiempo y redirigimos sí o sí.
+    try {
+      Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
+    } catch { /* ignora */ }
+    try {
+      await Promise.race([
+        supabase.auth.signOut({ scope: 'local' }),
+        new Promise(res => setTimeout(res, 1500)),
+      ]);
+    } catch { /* ignora */ }
+    window.location.replace('/');
   }, []);
 
   // Super admin: entrar a una producción concreta
