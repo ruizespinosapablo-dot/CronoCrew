@@ -9,19 +9,22 @@ export function SuperAdminProvider({ children }) {
   const [companies, setCompanies]     = useState([]);
   const [productions, setProductions] = useState([]);
   const [users, setUsers]             = useState([]);
+  const [emps, setEmps]               = useState([]);
   const [loading, setLoading]         = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [cRes, pRes, uRes] = await Promise.all([
+      const [cRes, pRes, uRes, eRes] = await Promise.all([
         supabase.from('companies').select('*').order('name'),
         supabase.from('productions').select('*').order('name'),
         supabase.from('profiles').select('*').order('name'),
+        supabase.from('emps').select('id, name, role, dept, production_id, c_start, c_end, is_reinforcement').order('name'),
       ]);
       setCompanies(cRes.data || []);
       setProductions(pRes.data || []);
       setUsers(uRes.data || []);
+      setEmps(eRes.data || []);
     } catch (err) {
       showToast('Error cargando datos: ' + err.message, 'error');
     } finally {
@@ -129,7 +132,7 @@ export function SuperAdminProvider({ children }) {
 
   return (
     <SuperAdminContext.Provider value={{
-      companies, productions, users, loading, reload: load,
+      companies, productions, users, emps, loading, reload: load,
       createCompany, updateCompany,
       createProduction, updateProduction,
       createProfile, updateProfile, createUser,

@@ -44,6 +44,7 @@ const mapEmp = row => ({
   color: row.color, start: row.start_time, end: row.end_time,
   brk: row.brk, ch: row.ch, cStart: row.c_start, cEnd: row.c_end,
   setupComplete: row.setup_complete ?? false,
+  isReinforcement: row.is_reinforcement ?? false,
 });
 
 const mapRec = row => ({
@@ -555,6 +556,7 @@ export function AppProvider({ children }) {
           link.name.split(' ').filter(Boolean).map(p => p[0].toUpperCase()).join('').slice(0, 2) || 'XX',
         color: '#6b7191', start_time: link.citedIn || '09:00', end_time: link.citedOut || '18:00',
         brk: link.brk || 60, ch: link.ch || 8, c_start: link.date, c_end: link.date,
+        is_reinforcement: true,
         ...(prodId ? { production_id: prodId } : {}),
       };
       const { error: empErr } = await supabase.from('emps').insert(empRow);
