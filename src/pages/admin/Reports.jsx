@@ -25,7 +25,10 @@ const TYPE_META = {
   ord:     { icon: '💰', label: 'Horas ordinarias pagadas', color: 'var(--teal)'  },
   special: { icon: '⭐', label: 'Jornada especial',         color: 'var(--amber)' },
   catup:   { icon: '⬆', label: 'Subida de categoría',      color: 'var(--purple)'},
+  km:      { icon: '🚗', label: 'Kilometraje',              color: 'var(--coral)' },
 };
+
+const eur = (n) => `${(Math.round(Number(n) * 100) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €`;
 
 export default function Reports() {
   const { emps, recs, paid, deletePaidById, updateRec } = useApp();
@@ -37,6 +40,7 @@ export default function Reports() {
   const [showOrd, setShowOrd] = useState(true);
   const [showSpecial, setShowSpecial] = useState(true);
   const [showCatUp, setShowCatUp] = useState(true);
+  const [showKm, setShowKm] = useState(true);
   const [payEid, setPayEid] = useState(null);
 
   const filterFn = (r) => {
@@ -60,6 +64,7 @@ export default function Reports() {
             const empPaid = paid.filter(p => p.eid === emp.id && (!dateFrom || p.date >= dateFrom) && (!dateTo || p.date <= dateTo));
             const specRecs = recs.filter(r => r.eid === emp.id && r.special && (!dateFrom || r.date >= dateFrom) && (!dateTo || r.date <= dateTo));
             const catUpRecs = recs.filter(r => r.eid === emp.id && r.catUp && (!dateFrom || r.date >= dateFrom) && (!dateTo || r.date <= dateTo));
+            const kmRecs = recs.filter(r => r.eid === emp.id && r.kmApplied && (!dateFrom || r.date >= dateFrom) && (!dateTo || r.date <= dateTo));
             const items = [];
             empPaid.forEach(p => {
               if (showExt && p.extMin > 0) items.push({ type: 'Extras pagadas', date: p.date, note: p.note, amount: fmtMin(p.extMin) });
@@ -67,6 +72,7 @@ export default function Reports() {
             });
             if (showSpecial) specRecs.forEach(r => items.push({ type: 'Jornada especial', date: r.date, note: r.specialNote, amount: '' }));
             if (showCatUp)   catUpRecs.forEach(r => items.push({ type: 'Subida de categoría', date: r.date, note: r.catUpNote, amount: '' }));
+            if (showKm)      kmRecs.forEach(r => items.push({ type: 'Kilometraje', date: r.date, note: r.kmCount ? `${r.kmCount} km` : '', amount: r.kmEur != null ? eur(r.kmEur) : 'pendiente' }));
             items.sort((a, b) => a.date.localeCompare(b.date));
             items.forEach(item => allRows.push([emp.name, emp.dept, item.date, item.type, item.note || '', item.amount].map(escape).join(',')));
           });
@@ -100,6 +106,7 @@ export default function Reports() {
         <button style={TOG(showOrd)}     onClick={() => setShowOrd(v => !v)}>💰 Horas ordinarias</button>
         <button style={TOG(showSpecial)} onClick={() => setShowSpecial(v => !v)}>⭐ Jornadas especiales</button>
         <button style={TOG(showCatUp)}   onClick={() => setShowCatUp(v => !v)}>⬆ Subidas de categoría</button>
+        <button style={TOG(showKm)}      onClick={() => setShowKm(v => !v)}>🚗 Kilometraje</button>
       </div>
 
       {visibleEmps.map(emp => {
@@ -116,6 +123,10 @@ export default function Reports() {
         const catUpRecs = recs
           .filter(r => r.eid === emp.id && r.catUp && (!dateFrom || r.date >= dateFrom) && (!dateTo || r.date <= dateTo))
           .sort((a, b) => a.date.localeCompare(b.date));
+        const kmRecs = recs
+          .filter(r => r.eid === emp.id && r.kmApplied && (!dateFrom || r.date >= dateFrom) && (!dateTo || r.date <= dateTo))
+          .sort((a, b) => a.date.localeCompare(b.date));
+        const kmTotal = kmRecs.reduce((a, r) => a + (Number(r.kmEur) || 0), 0);
 
         // Lista unificada cronológica
         const allItems = [];
@@ -125,9 +136,10 @@ export default function Reports() {
         });
         if (showSpecial) specRecs.forEach(r => allItems.push({ type: 'special', date: r.date, note: r.specialNote }));
         if (showCatUp)   catUpRecs.forEach(r => allItems.push({ type: 'catup', date: r.date, note: r.catUpNote, recId: r.id }));
+        if (showKm)      kmRecs.forEach(r => allItems.push({ type: 'km', date: r.date, note: r.kmCount ? `${r.kmCount} km` : '', amount: r.kmEur != null ? eur(r.kmEur) : 'pendiente de valorar' }));
         allItems.sort((a, b) => a.date.localeCompare(b.date));
 
-        const hasData = empPaid.length > 0 || specRecs.length > 0 || catUpRecs.length > 0;
+        const hasData = empPaid.length > 0 || specRecs.length > 0 || catUpRecs.length > 0 || kmRecs.length > 0;
 
         return (
           <div key={emp.id} className="tc" style={{ marginBottom: '1.5rem' }}>
@@ -149,6 +161,7 @@ export default function Reports() {
                 {pOrd    >  0 && <span style={{ fontSize: 12, color: 'var(--amber)'  }}>💰 {fmtMin(pOrd)} ord. pag.</span>}
                 {specRecs.length > 0 && <span className="b ba" style={{ fontSize: 11 }}>⭐ ×{specRecs.length}</span>}
                 {catUpRecs.length > 0 && <span className="b bp" style={{ fontSize: 11 }}>⬆ ×{catUpRecs.length}</span>}
+                {kmTotal > 0 && <span style={{ fontSize: 12, color: 'var(--coral)' }}>🚗 {eur(kmTotal)} km</span>}
                 <span style={{ fontWeight: 700, fontSize: 13, color: totalNet >= 0 ? 'var(--coral)' : 'var(--teal)' }}>
                   TOTAL: {fmt(Math.round(totalNet))}
                 </span>
