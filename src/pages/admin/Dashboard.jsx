@@ -11,7 +11,7 @@ export default function Dashboard({ onNavigate }) {
   const today = getToday();
   const activeEmps = emps.filter(e => !e.archived && (!e.cStart || e.cStart <= today) && (!e.cEnd || e.cEnd >= today));
   const todayRecs = recs.filter(r => r.date === today);
-  const present = todayRecs.filter(r => r.entry && !r.absence).length;
+  const present = todayRecs.filter(r => r.entry && !r.absence && r.status !== 'draft').length;
   const pending = recs.filter(r => r.status === 'pending').length;
   const pendingRequests = empRequests.filter(r => r.status === 'pending').length;
 
@@ -41,9 +41,13 @@ export default function Dashboard({ onNavigate }) {
           <tbody>
             {activeEmps.map(emp => {
               const rec = recs.find(r => r.eid === emp.id && r.date === today);
-              const c = rec && !rec.absence && rec.exit ? calcRec(rec, emp) : null;
+              // Un borrador (sin confirmar por el empleado) no es un fichaje enviado:
+              // no se muestra como registro ni se puede revisar hasta que lo confirme.
+              const isDraft = rec && rec.status === 'draft' && !rec.absence;
+              const c = rec && !isDraft && !rec.absence && rec.exit ? calcRec(rec, emp) : null;
               let badge;
               if (!rec) badge = <span className="b bx">Sin fichaje</span>;
+              else if (isDraft) badge = <span className="b bx">✍️ Sin confirmar</span>;
               else if (rec.absence) badge = <span className="b bp">{absLabels[rec.absence] || rec.absence}</span>;
               else if (rec.status === 'approved') badge = <span className="b bg">Aprobado</span>;
               else badge = <span className="b by">Pendiente</span>;
@@ -56,11 +60,11 @@ export default function Dashboard({ onNavigate }) {
                     </div>
                   </td>
                   <td style={{ fontSize: 12, color: 'var(--text2)' }}>{emp.start}–{emp.end}</td>
-                  <td style={{ fontFamily: 'monospace' }}>{rec?.entry || '—'}</td>
-                  <td style={{ fontFamily: 'monospace' }}>{rec?.exit || '—'}</td>
+                  <td style={{ fontFamily: 'monospace' }}>{isDraft ? '—' : (rec?.entry || '—')}</td>
+                  <td style={{ fontFamily: 'monospace' }}>{isDraft ? '—' : (rec?.exit || '—')}</td>
                   <td style={{ fontWeight: 700, color: 'var(--teal)' }}>{c ? fmt(c.net) : '—'}</td>
                   <td>{badge}</td>
-                  <td>{rec && <button className="btn-sm" onClick={() => setEditRecId(rec.id)}>Revisar</button>}</td>
+                  <td>{rec && !isDraft && <button className="btn-sm" onClick={() => setEditRecId(rec.id)}>Revisar</button>}</td>
                 </tr>
               );
             })}
