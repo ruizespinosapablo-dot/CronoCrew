@@ -3,7 +3,22 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { fmtDate } from '../../lib/utils';
 
-const TYPE_CLASS = { 'Vacaciones': 'bp', 'Enfermedad': 'bc', 'Asunto personal': 'bx', 'Maternidad/Paternidad': 'bt', 'Otro': 'bx' };
+// Permisos que puede solicitar el empleado (día/s completo/s, según convenio).
+// Las ausencias por horas (médico propio, acompañamiento) se registran en Fichar.
+const TYPE_CLASS = {
+  'Vacaciones': 'bp',
+  'Asuntos propios': 'bx',
+  'Matrimonio / pareja de hecho': 'ba',
+  'Fallecimiento de familiar': 'bx',
+  'Hospitalización / enfermedad grave de familiar': 'bc',
+  'Lactancia': 'bt',
+  'Nacimiento / Maternidad / Paternidad': 'bt',
+  'Traslado de domicilio': 'bx',
+  'Deber inexcusable (público)': 'by',
+  'Exámenes / formación': 'bp',
+  'Fuerza mayor familiar': 'bc',
+  'Otro': 'bx',
+};
 
 export default function Leave({ emp }) {
   const { currentUser, emps, empRequests, addEmpRequest } = useApp();
@@ -34,7 +49,8 @@ export default function Leave({ emp }) {
     <>
       <div className="ph"><div><h1>Permisos y ausencias</h1></div></div>
       <div className="card-section">
-        <h3 style={{ marginBottom: '1rem' }}>Nueva solicitud</h3>
+        <h3 style={{ marginBottom: '.35rem' }}>Nueva solicitud</h3>
+        <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: '1rem' }}>Para días completos. Si es una ausencia de unas horas (médico, acompañamiento), regístrala en Fichar como ausencia parcial.</p>
         <div className="fg">
           <label>Tipo</label>
           <select value={type} onChange={e => setType(e.target.value)}>
