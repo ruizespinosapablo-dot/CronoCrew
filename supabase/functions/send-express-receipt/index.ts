@@ -9,6 +9,8 @@ const ALLOWED_ORIGINS = [
 
 // Remitente del comprobante (dominio verificado en Resend).
 const RECEIPT_FROM = Deno.env.get('RECEIPT_FROM') ?? 'ClapTime <no-reply@send.clapsuite.com>'
+// Logo de ClapTime (imagen, para que no se "traduzca" el texto en algunos clientes).
+const LOGO_URL = Deno.env.get('LOGO_URL') ?? 'https://claptime.clapsuite.com/logo.png'
 
 const corsHeadersFor = (req: Request) => {
   const origin = req.headers.get('Origin') ?? ''
@@ -78,6 +80,21 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Nombre del proyecto (producción) y de la productora (empresa)
+    let prodName = '', companyName = ''
+    if (link.production_id) {
+      const { data: prod } = await supabaseAdmin
+        .from('productions').select('name, company_id').eq('id', link.production_id).single()
+      if (prod) {
+        prodName = prod.name || ''
+        if (prod.company_id) {
+          const { data: comp } = await supabaseAdmin
+            .from('companies').select('name').eq('id', prod.company_id).single()
+          companyName = comp?.name || ''
+        }
+      }
+    }
+
     const netMin = (link.entry && link.exit)
       ? Math.max(0, t2m(link.exit) - t2m(link.entry) - (link.brk || 60))
       : 0
@@ -91,13 +108,15 @@ Deno.serve(async (req) => {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f7;margin:0;padding:24px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <tr><td align="center">
     <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:100%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(16,16,24,0.08);">
-      <tr><td style="background:#0e1018;padding:22px 32px;">
-        <span style="color:#ffffff;font-size:19px;font-weight:700;letter-spacing:.3px;">Clap<span style="color:#C9F23E;">Time</span></span>
+      <tr><td style="background:#0e1018;padding:20px 32px;">
+        <img src="${LOGO_URL}" alt="ClapTime" height="30" style="display:block;height:30px;border:0;outline:none;text-decoration:none;" />
       </td></tr>
       <tr><td style="padding:32px;">
         <h1 style="margin:0 0 6px;font-size:20px;line-height:1.3;color:#1a1d29;">Comprobante de fichaje</h1>
         <p style="margin:0 0 18px;font-size:14px;color:#3f4453;">Hola, ${esc(link.name)}. Este es el resguardo de tu jornada registrada con Fichaje Express.</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #ececed;border-bottom:1px solid #ececed;margin:0 0 18px;">
+          ${companyName ? row('Productora', companyName) : ''}
+          ${prodName ? row('Proyecto', prodName) : ''}
           ${row('Fecha', fmtDate(link.date))}
           ${row('Puesto', [link.role, link.dept].filter(Boolean).join(' · ') || '—')}
           ${row('Citación', `${link.cited_in}–${link.cited_out}`)}
