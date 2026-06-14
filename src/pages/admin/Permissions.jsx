@@ -4,12 +4,12 @@ import { useToast } from '../../context/ToastContext';
 import { fmtDate } from '../../lib/utils';
 
 const TYPE_CLASS = { 'Vacaciones': 'bp', 'Baja médica': 'bc', 'Permiso médico': 'by', 'Asunto personal': 'bx', 'Maternidad/Paternidad': 'bt', 'Otro': 'bx' };
-const BASE_PERMS = [{ names: 'Laura Fernández', type: 'Vacaciones', start: '2025-04-01', end: '2025-04-05', days: 5, note: '—' }];
 
 export default function Permissions() {
-  const { emps, adminPerms, addAdminPerm, festivos, addFestivo, removeFestivo } = useApp();
+  const { emps, adminPerms, addAdminPerm, removeAdminPerm, festivos, addFestivo, removeFestivo } = useApp();
   const { showToast } = useToast();
   const [vacEmps, setVacEmps] = useState([]);
+  const [vacSearch, setVacSearch] = useState('');
   const [vacStart, setVacStart] = useState('');
   const [vacEnd, setVacEnd] = useState('');
   const [vacNote, setVacNote] = useState('');
@@ -45,7 +45,18 @@ export default function Permissions() {
     setFestName('');
   };
 
-  const allPerms = [...BASE_PERMS, ...adminPerms];
+  const allPerms = adminPerms;
+
+  // Selector de empleados para vacaciones (checkboxes + buscador)
+  const vacActiveEmps = emps.filter(e => !e.archived);
+  const vacFiltered = vacActiveEmps.filter(e => (e.name || '').toLowerCase().includes(vacSearch.toLowerCase()));
+  const toggleVac = (id) => setVacEmps(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const allFilteredSelected = vacFiltered.length > 0 && vacFiltered.every(e => vacEmps.includes(e.id));
+  const toggleAllFiltered = () => setVacEmps(prev =>
+    allFilteredSelected
+      ? prev.filter(id => !vacFiltered.some(e => e.id === id))
+      : [...new Set([...prev, ...vacFiltered.map(e => e.id)])]
+  );
 
   return (
     <>
@@ -78,12 +89,29 @@ export default function Permissions() {
 
       <div className="card-section">
         <h3>🌴 Vacaciones — múltiples empleados</h3>
-        <p className="sub">Selecciona varios empleados a la vez (Cmd/Ctrl + clic).</p>
+        <p className="sub">Marca los empleados a los que aplicar las vacaciones.</p>
         <div className="fg">
-          <label>Empleados</label>
-          <select multiple style={{ height: 90 }} value={vacEmps} onChange={e => setVacEmps(Array.from(e.target.selectedOptions, o => o.value))}>
-            {emps.filter(e => !e.archived).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
+          <label>Empleados {vacEmps.length > 0 && <span style={{ color: 'var(--accent)' }}>· {vacEmps.length} seleccionados</span>}</label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+            <input type="text" value={vacSearch} onChange={e => setVacSearch(e.target.value)} placeholder="Buscar empleado..." autoComplete="off"
+              style={{ flex: 1, minWidth: 160, background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 13, outline: 'none' }} />
+            <button className="btn-sm" onClick={toggleAllFiltered}>{allFilteredSelected ? 'Quitar todos' : 'Seleccionar todos'}</button>
+            {vacEmps.length > 0 && <button className="btn-sm" onClick={() => setVacEmps([])}>Limpiar</button>}
+          </div>
+          <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border2)', borderRadius: 10, background: 'var(--bg3)' }}>
+            {vacFiltered.map(e => {
+              const sel = vacEmps.includes(e.id);
+              return (
+                <label key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: sel ? 'rgba(201,242,62,0.07)' : 'transparent' }}>
+                  <input type="checkbox" checked={sel} onChange={() => toggleVac(e.id)} style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
+                  <div className="avatar" style={{ background: e.color, color: '#fff', width: 24, height: 24, fontSize: 9, flexShrink: 0 }}>{e.initials}</div>
+                  <span style={{ fontSize: 13, color: 'var(--text)' }}>{e.name}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 'auto' }}>{e.dept}</span>
+                </label>
+              );
+            })}
+            {vacFiltered.length === 0 && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>Sin resultados</div>}
+          </div>
         </div>
         <div className="frow">
           <div className="fg"><label>Fecha inicio</label><input type="date" value={vacStart} onChange={e => setVacStart(e.target.value)} /></div>
@@ -121,17 +149,26 @@ export default function Permissions() {
       <div className="tc">
         <div className="tch"><h3>Permisos registrados</h3></div>
         <table>
-          <thead><tr><th>Empleado(s)</th><th>Tipo</th><th>Fechas</th><th>Días</th><th>Notas</th></tr></thead>
+          <thead><tr><th>Empleado(s)</th><th>Tipo</th><th>Fechas</th><th>Días</th><th>Notas</th><th></th></tr></thead>
           <tbody>
             {allPerms.map((p, i) => (
-              <tr key={i}>
+              <tr key={p.id || i}>
                 <td style={{ fontSize: 13 }}>{p.names}</td>
                 <td><span className={`b ${TYPE_CLASS[p.type] || 'bx'}`}>{p.type}</span></td>
                 <td style={{ fontSize: 12, color: 'var(--text2)' }}>{p.start} a {p.end}</td>
                 <td>{p.days}</td>
                 <td style={{ color: 'var(--text2)', fontSize: 12 }}>{p.note || '—'}</td>
+                <td style={{ textAlign: 'right' }}>
+                  <button className="btn-sm" style={{ color: 'var(--coral)' }}
+                    onClick={() => { if (window.confirm(`¿Eliminar este permiso de ${p.names}?`)) removeAdminPerm(p.id); }}>
+                    Eliminar
+                  </button>
+                </td>
               </tr>
             ))}
+            {allPerms.length === 0 && (
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text3)', padding: '1.5rem' }}>Sin permisos registrados</td></tr>
+            )}
           </tbody>
         </table>
       </div>

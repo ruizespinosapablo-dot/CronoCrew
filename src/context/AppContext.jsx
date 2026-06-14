@@ -79,7 +79,10 @@ const mapReq = row => ({
 });
 
 const mapPerm = row => ({
-  id: row.id, eid: row.eid, type: row.type || '', grantedAt: row.granted_at || null,
+  id: row.id, eid: row.eid, type: row.type || '',
+  names: row.names || '', start: row.start_date || '', end: row.end_date || '',
+  days: row.days || 0, note: row.note || '',
+  grantedAt: row.granted_at || null,
 });
 
 // App object → Supabase row
@@ -117,7 +120,9 @@ const toReqRow = r => ({
 });
 
 const toPermRow = p => ({
-  id: p.id, eid: p.eid, type: p.type || null,
+  id: p.id, eid: p.eid || null, type: p.type || null,
+  names: p.names || null, start_date: p.start || null, end_date: p.end || null,
+  days: p.days || null, note: p.note || null,
   granted_at: p.grantedAt || new Date().toISOString(),
 });
 
@@ -523,6 +528,11 @@ export function AppProvider({ children }) {
     sb(supabase.from('admin_perms').insert({ ...toPermRow(withId), ...(prodId ? { production_id: prodId } : {}) }));
   }, []);
 
+  const removeAdminPerm = useCallback((id) => {
+    setAdminPerms(prev => prev.filter(p => p.id !== id));
+    sb(supabase.from('admin_perms').delete().eq('id', id));
+  }, []);
+
   const addFestivo = useCallback((festivo) => {
     const prodId = currentUserRef.current?.productionId;
     setFestivos(prev => {
@@ -687,7 +697,7 @@ export function AppProvider({ children }) {
       emps, updateEmp, addEmp,
       recs, updateRec, addRec, upsertRec, deleteRec,
       paid, upsertPaid, removePaid, addPaid, deletePaidById,
-      adminPerms, addAdminPerm,
+      adminPerms, addAdminPerm, removeAdminPerm,
       festivos, addFestivo, removeFestivo,
       empRequests, addEmpRequest, updateEmpRequest,
       expressLinks, addExpressLink, importExpressLink, deleteExpressLink,
