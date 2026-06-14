@@ -29,6 +29,7 @@ const mapExpressLink = row => ({
   entry: row.entry || null,
   exit: row.exit || null,
   obs: row.obs || '',
+  email: row.email || '',
   kmApplied: row.km_applied || false,
   kmCount: row.km_count ?? null,
   status: row.status || 'pending',
@@ -546,7 +547,7 @@ export function AppProvider({ children }) {
         id: eid, name: link.name,
         alias: link.name.split(' ').filter(Boolean)[0] || link.name,
         role: link.role || 'Refuerzo', dept: link.dept || 'Sin departamento',
-        dni: link.dni || '', email: '', initials:
+        dni: link.dni || '', email: link.email || '', initials:
           link.name.split(' ').filter(Boolean).map(p => p[0].toUpperCase()).join('').slice(0, 2) || 'XX',
         color: '#6b7191', start_time: link.citedIn || '09:00', end_time: link.citedOut || '18:00',
         brk: link.brk || 60, ch: link.ch || 8, c_start: link.date, c_end: link.date,

@@ -40,6 +40,9 @@ export default function ExpressClock({ token }) {
   const [obs, setObs] = useState('');
   const [kmOn, setKmOn] = useState(false);
   const [kmCount, setKmCount] = useState('');
+  const [email, setEmail] = useState('');
+  const [idConfirm, setIdConfirm] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [validErr, setValidErr] = useState('');
 
@@ -65,13 +68,18 @@ export default function ExpressClock({ token }) {
     })();
   }, [token]);
 
+  const emailValid = !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
   const handleSubmit = async () => {
     setValidErr('');
     if (!entry) { setValidErr('Indica la hora de entrada.'); return; }
     if (!exit)  { setValidErr('Indica la hora de salida.'); return; }
     if (t2m(exit) <= t2m(entry)) { setValidErr('La salida debe ser posterior a la entrada.'); return; }
+    if (!emailValid) { setValidErr('Revisa el email: no parece válido.'); return; }
+    if (!idConfirm) { setValidErr('Marca la casilla de confirmación para enviar.'); return; }
     setSubmitting(true);
     const cnt = parseFloat(kmCount);
+    const cleanEmail = email.trim() || null;
     const { data: ok, error } = await supabase.rpc('file_express_link', {
       p_id: token,
       p_entry: entry,
@@ -79,10 +87,53 @@ export default function ExpressClock({ token }) {
       p_obs: obs.trim() || null,
       p_km_applied: kmOn,
       p_km_count: kmOn && cnt > 0 ? cnt : null,
+      p_email: cleanEmail,
     });
     if (error || !ok) { setValidErr('Error al enviar. Inténtalo de nuevo.'); setSubmitting(false); return; }
+    // Enviar comprobante por email (si dejó email). No bloquea el éxito del fichaje.
+    if (cleanEmail) {
+      try {
+        const { data: res } = await supabase.functions.invoke('send-express-receipt', { body: { token } });
+        if (res?.sent) setEmailSent(true);
+      } catch { /* el PDF sigue disponible aunque falle el email */ }
+    }
     setFiled(true);
     setSubmitting(false);
+  };
+
+  const downloadPdf = async () => {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    doc.setFillColor(14, 16, 24); doc.rect(0, 0, 595, 64, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+    doc.text('ClapTime', 40, 40);
+    doc.setTextColor(26, 29, 41); doc.setFontSize(15);
+    doc.text('Comprobante de fichaje', 40, 100);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(63, 68, 83);
+    const rows = [
+      ['Nombre', link.name],
+      ['Puesto', [link.role, link.dept].filter(Boolean).join(' · ') || '—'],
+      ['Fecha', fmtDate(link.date)],
+      ['Citación', `${link.cited_in}–${link.cited_out}`],
+      ['Entrada real', entry || '—'],
+      ['Salida real', exit || '—'],
+      ['Descanso', `${link.brk || 0} min`],
+      ['Horas netas', netMins !== null ? fmt(netMins) : '—'],
+      ...(kmOn ? [['Kilometraje', kmCount ? `${kmCount} km (importe a fijar por producción)` : 'Aplicado (importe a fijar)']] : []),
+      ...(obs.trim() ? [['Observaciones', obs.trim()]] : []),
+      ['Enviado', new Date().toLocaleString('es-ES')],
+    ];
+    let y = 140;
+    rows.forEach(([k, v]) => {
+      doc.setTextColor(107, 114, 128); doc.text(String(k), 40, y);
+      doc.setTextColor(26, 29, 41); doc.setFont('helvetica', 'bold');
+      doc.text(String(v), 200, y, { maxWidth: 350 });
+      doc.setFont('helvetica', 'normal');
+      y += 26;
+    });
+    doc.setTextColor(154, 160, 172); doc.setFontSize(9);
+    doc.text('Conserva este comprobante como justificante. ClapTime · by ClapSuite', 40, y + 16);
+    doc.save(`comprobante_fichaje_${link.date}.pdf`);
   };
 
   const netMins = (entry && exit && link)
@@ -105,21 +156,54 @@ export default function ExpressClock({ token }) {
     </div>
   );
 
-  if (filed) return (
-    <div style={S.page}>
-      <img src={logo} alt="ClapTime" style={{ width: 44, marginBottom: 20 }} />
-      <div style={{ ...S.card, textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--teal)', marginBottom: 8 }}>
-          ¡Fichaje enviado!
-        </div>
-        <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.6 }}>
-          Tu jornada ha sido registrada correctamente.<br />
-          Puedes cerrar esta página.
+  if (filed) {
+    const rRow = (k, v) => (
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '7px 0', borderBottom: '1px solid var(--border2)' }}>
+        <span style={{ color: 'var(--text3)', fontSize: 13 }}>{k}</span>
+        <span style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600, textAlign: 'right' }}>{v}</span>
+      </div>
+    );
+    return (
+      <div style={S.page}>
+        <img src={logo} alt="ClapTime" style={{ width: 44, marginBottom: 20 }} />
+        <div style={S.card}>
+          <div style={{ textAlign: 'center', marginBottom: '1.1rem' }}>
+            <div style={{ fontSize: 40, marginBottom: 6 }}>✅</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--teal)' }}>¡Fichaje enviado!</div>
+            <div style={{ color: 'var(--text2)', fontSize: 12, marginTop: 4 }}>Este es tu comprobante. Guárdalo.</div>
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            {rRow('Nombre', link.name)}
+            {rRow('Fecha', fmtDate(link.date))}
+            {rRow('Citación', `${link.cited_in}–${link.cited_out}`)}
+            {rRow('Entrada real', entry || '—')}
+            {rRow('Salida real', exit || '—')}
+            {rRow('Descanso', `${link.brk || 0} min`)}
+            {rRow('Horas netas', netMins !== null ? fmt(netMins) : '—')}
+            {kmOn && rRow('Kilometraje', kmCount ? `${kmCount} km` : 'Aplicado')}
+            {obs.trim() && rRow('Observaciones', obs.trim())}
+          </div>
+          {email.trim() && (
+            <div style={{ background: 'var(--bg3)', borderRadius: 8, padding: '9px 13px', marginBottom: '1rem', fontSize: 12.5, color: emailSent ? 'var(--teal)' : 'var(--text2)' }}>
+              {emailSent
+                ? `📧 Te hemos enviado una copia a ${email.trim()}`
+                : `Si no recibes la copia en ${email.trim()}, descarga el PDF.`}
+            </div>
+          )}
+          <button onClick={downloadPdf} style={{
+            width: '100%', background: 'var(--accent)', color: '#0a0b0f',
+            border: 'none', borderRadius: 10, padding: '13px',
+            fontFamily: 'var(--fh)', fontWeight: 700, fontSize: 15, cursor: 'pointer',
+          }}>
+            ⬇ Descargar comprobante (PDF)
+          </button>
+          <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 12, marginTop: 12 }}>
+            Puedes cerrar esta página.
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div style={S.page}>
@@ -172,6 +256,11 @@ export default function ExpressClock({ token }) {
             )}
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>Producción le pondrá el importe en € al revisar.</div>
           </div>
+          <div>
+            <label style={S.label}>Tu email <span style={{ textTransform: 'none', fontWeight: 400, color: 'var(--text3)' }}>(opcional · para recibir tu comprobante)</span></label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="tucorreo@ejemplo.com" style={S.input} autoCapitalize="off" autoCorrect="off" />
+          </div>
         </div>
 
         {/* Preview horas netas */}
@@ -184,6 +273,12 @@ export default function ExpressClock({ token }) {
           </div>
         )}
 
+        {/* Declaración de identidad */}
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', marginBottom: '1rem', fontSize: 13, color: 'var(--text2)' }}>
+          <input type="checkbox" checked={idConfirm} onChange={e => setIdConfirm(e.target.checked)} style={{ width: 18, height: 18, marginTop: 1, cursor: 'pointer', flexShrink: 0 }} />
+          <span>Confirmo que soy <b style={{ color: 'var(--text)' }}>{link.name}</b> y que los datos del fichaje son correctos.</span>
+        </label>
+
         {/* Error de validación */}
         {validErr && (
           <div style={{ color: 'var(--coral)', fontSize: 12, marginBottom: '0.75rem' }}>{validErr}</div>
@@ -191,13 +286,13 @@ export default function ExpressClock({ token }) {
 
         <button
           onClick={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || !idConfirm}
           style={{
             width: '100%', background: 'var(--accent)', color: '#0a0b0f',
             border: 'none', borderRadius: 10, padding: '13px',
             fontFamily: 'var(--fh)', fontWeight: 700, fontSize: 15,
-            cursor: submitting ? 'not-allowed' : 'pointer',
-            opacity: submitting ? 0.7 : 1, transition: 'opacity .15s',
+            cursor: (submitting || !idConfirm) ? 'not-allowed' : 'pointer',
+            opacity: (submitting || !idConfirm) ? 0.6 : 1, transition: 'opacity .15s',
           }}
         >
           {submitting ? 'Enviando…' : 'Enviar fichaje'}
