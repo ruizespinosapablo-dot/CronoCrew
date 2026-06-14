@@ -112,6 +112,8 @@ export default function ExpressClock({ token }) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(63, 68, 83);
     const rows = [
       ['Nombre', link.name],
+      ...(link.company_name ? [['Productora', link.company_name]] : []),
+      ...(link.production_name ? [['Proyecto', link.production_name]] : []),
       ['Puesto', [link.role, link.dept].filter(Boolean).join(' · ') || '—'],
       ['Fecha', fmtDate(link.date)],
       ['Citación', `${link.cited_in}–${link.cited_out}`],
@@ -174,6 +176,8 @@ export default function ExpressClock({ token }) {
           </div>
           <div style={{ marginBottom: '1rem' }}>
             {rRow('Nombre', link.name)}
+            {link.company_name && rRow('Productora', link.company_name)}
+            {link.production_name && rRow('Proyecto', link.production_name)}
             {rRow('Fecha', fmtDate(link.date))}
             {rRow('Citación', `${link.cited_in}–${link.cited_out}`)}
             {rRow('Entrada real', entry || '—')}
@@ -218,6 +222,11 @@ export default function ExpressClock({ token }) {
           {(link.role || link.dept) && (
             <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 3 }}>
               {[link.role, link.dept].filter(Boolean).join(' · ')}
+            </div>
+          )}
+          {(link.company_name || link.production_name) && (
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+              {[link.company_name, link.production_name].filter(Boolean).join(' · ')}
             </div>
           )}
         </div>
