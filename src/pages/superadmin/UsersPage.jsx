@@ -179,7 +179,7 @@ export default function UsersPage() {
                 <label>Nombre completo *</label>
                 <input value={form.name}
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="María García López" />
+                  placeholder="María García López" autoComplete="off" />
               </div>
               <div className="fg">
                 <label>Alias</label>
@@ -310,7 +310,7 @@ function UserForm({ form, setForm, companies, filteredProds }) {
     <>
       <div className="fg">
         <label>Nombre *</label>
-        <input value={form.name} onChange={f('name')} placeholder="Pablo Espinosa" />
+        <input value={form.name} onChange={f('name')} placeholder="Pablo Espinosa" autoComplete="off" />
       </div>
       <div className="fg">
         <label>Rol</label>

@@ -66,7 +66,7 @@ export default function ExpressFilings() {
         <div className="frow" style={{ marginBottom: '1rem' }}>
           <div className="fg">
             <label>Nombre completo *</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Pedro Ruiz García" />
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Pedro Ruiz García" autoComplete="off" />
           </div>
           <div className="fg">
             <label>DNI</label>

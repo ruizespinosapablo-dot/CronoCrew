@@ -45,8 +45,8 @@ export default function NewEmployeeModal({ onClose }) {
       <div className="modal">
         <h3>Nuevo empleado</h3>
         <div className="frow">
-          <div className="fg"><label>Nombre completo</label><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Laura Fernández" /></div>
-          <div className="fg"><label>Alias (se mostrará en la app)</label><input type="text" value={alias} onChange={e => setAlias(e.target.value)} placeholder="Laura" /></div>
+          <div className="fg"><label>Nombre completo</label><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Laura Fernández" autoComplete="off" /></div>
+          <div className="fg"><label>Alias (se mostrará en la app)</label><input type="text" value={alias} onChange={e => setAlias(e.target.value)} placeholder="Laura" autoComplete="off" /></div>
         </div>
         <div className="frow">
           <div className="fg"><label>DNI</label><input type="text" value={dni} onChange={e => setDni(e.target.value)} placeholder="12345678A" /></div>

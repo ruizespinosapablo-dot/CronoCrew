@@ -62,8 +62,8 @@ export default function EditEmployeeModal({ empId, onClose }) {
         <h3>Editar empleado</h3>
         <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: '1rem' }}>{emp.name}</p>
         <div className="frow">
-          <div className="fg"><label>Nombre completo</label><input type="text" value={name} onChange={e => setName(e.target.value)} /></div>
-          <div className="fg"><label>Alias</label><input type="text" value={alias} onChange={e => setAlias(e.target.value)} /></div>
+          <div className="fg"><label>Nombre completo</label><input type="text" value={name} onChange={e => setName(e.target.value)} autoComplete="off" /></div>
+          <div className="fg"><label>Alias</label><input type="text" value={alias} onChange={e => setAlias(e.target.value)} autoComplete="off" /></div>
         </div>
         <div className="frow">
           <div className="fg"><label>DNI</label><input type="text" value={dni} onChange={e => setDni(e.target.value)} /></div>
