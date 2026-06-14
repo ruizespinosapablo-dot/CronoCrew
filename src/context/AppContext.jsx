@@ -285,6 +285,14 @@ export function AppProvider({ children }) {
           if (attempt < 2) await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
         }
       }
+      // Si la lectura del perfil falló pero YA teníamos resuelto este mismo usuario,
+      // no degradamos la sesión (evita "Cuenta sin vincular" tras un rato inactivo,
+      // cuando la revalidación de Supabase relee el perfil y la consulta se cuelga).
+      const prev = currentUserRef.current;
+      if (!profile && prev && prev.id === session.user.id) {
+        setAuthChecked(true);
+        return;
+      }
       const u = {
         id: session.user.id,
         email: session.user.email,
