@@ -52,7 +52,7 @@ export default function Reports() {
     return true;
   };
 
-  let visibleEmps = emps;
+  let visibleEmps = emps.filter(e => !e.archived);   // ocultar empleados dados de baja
   if (filterDept) visibleEmps = visibleEmps.filter(e => e.dept === filterDept);
   if (filterEmp)  visibleEmps = visibleEmps.filter(e => e.id === filterEmp);
 
@@ -94,7 +94,7 @@ export default function Reports() {
         </select>
         <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)}>
           <option value="">Todos los empleados</option>
-          {(filterDept ? emps.filter(e => e.dept === filterDept) : emps).map(e => (
+          {(filterDept ? emps.filter(e => e.dept === filterDept && !e.archived) : emps.filter(e => !e.archived)).map(e => (
             <option key={e.id} value={e.id}>{e.name}</option>
           ))}
         </select>

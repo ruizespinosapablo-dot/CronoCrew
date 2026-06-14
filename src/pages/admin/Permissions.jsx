@@ -82,7 +82,7 @@ export default function Permissions() {
         <div className="fg">
           <label>Empleados</label>
           <select multiple style={{ height: 90 }} value={vacEmps} onChange={e => setVacEmps(Array.from(e.target.selectedOptions, o => o.value))}>
-            {emps.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            {emps.filter(e => !e.archived).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
           </select>
         </div>
         <div className="frow">
@@ -100,7 +100,7 @@ export default function Permissions() {
           <div className="fg">
             <label>Empleado</label>
             <select value={othEmp} onChange={e => setOthEmp(e.target.value)}>
-              {emps.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              {emps.filter(e => !e.archived).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           </div>
           <div className="fg">
