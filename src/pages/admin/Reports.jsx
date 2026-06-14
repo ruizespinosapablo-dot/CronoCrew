@@ -20,9 +20,12 @@ const fmtMin = (min) => {
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
 };
 
+// Código de colores: verde extras · azul ordinarias · amarillo especiales ·
+// rojo kilometraje · morado subida de categoría.
+const BLUE = '#54A8ED';
 const TYPE_META = {
-  ext:     { icon: '💰', label: 'Extras pagadas',           color: 'var(--amber)' },
-  ord:     { icon: '💰', label: 'Horas ordinarias pagadas', color: 'var(--teal)'  },
+  ext:     { icon: '💰', label: 'Extras pagadas',           color: 'var(--green)' },
+  ord:     { icon: '💰', label: 'Horas ordinarias pagadas', color: BLUE          },
   special: { icon: '⭐', label: 'Jornada especial',         color: 'var(--amber)' },
   catup:   { icon: '⬆', label: 'Subida de categoría',      color: 'var(--purple)'},
   km:      { icon: '🚗', label: 'Kilometraje',              color: 'var(--coral)' },
@@ -102,11 +105,11 @@ export default function Reports() {
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1.25rem', alignItems: 'center' }}>
         <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em' }}>Mostrar:</span>
-        <button style={TOG(showExt)}     onClick={() => setShowExt(v => !v)}>💰 Extras pagadas</button>
-        <button style={TOG(showOrd)}     onClick={() => setShowOrd(v => !v)}>💰 Horas ordinarias</button>
-        <button style={TOG(showSpecial)} onClick={() => setShowSpecial(v => !v)}>⭐ Jornadas especiales</button>
-        <button style={TOG(showCatUp)}   onClick={() => setShowCatUp(v => !v)}>⬆ Subidas de categoría</button>
-        <button style={TOG(showKm)}      onClick={() => setShowKm(v => !v)}>🚗 Kilometraje</button>
+        <button style={{ ...TOG(showExt),     ...(showExt     && { color: 'var(--green)',  borderColor: 'var(--green)'  }) }} onClick={() => setShowExt(v => !v)}>💰 Extras pagadas</button>
+        <button style={{ ...TOG(showOrd),     ...(showOrd     && { color: BLUE,           borderColor: BLUE            }) }} onClick={() => setShowOrd(v => !v)}>💰 Horas ordinarias</button>
+        <button style={{ ...TOG(showSpecial), ...(showSpecial && { color: 'var(--amber)',  borderColor: 'var(--amber)'  }) }} onClick={() => setShowSpecial(v => !v)}>⭐ Jornadas especiales</button>
+        <button style={{ ...TOG(showCatUp),   ...(showCatUp   && { color: 'var(--purple)', borderColor: 'var(--purple)' }) }} onClick={() => setShowCatUp(v => !v)}>⬆ Subidas de categoría</button>
+        <button style={{ ...TOG(showKm),      ...(showKm      && { color: 'var(--coral)',  borderColor: 'var(--coral)'  }) }} onClick={() => setShowKm(v => !v)}>🚗 Kilometraje</button>
       </div>
 
       {visibleEmps.map(emp => {
@@ -157,8 +160,8 @@ export default function Reports() {
                 {s.accum !== 0 && <span style={{ fontSize: 12, color: 'var(--coral)'  }}>{s.accum > 0 ? '+' : ''}{fmt(s.accum)} acum.</span>}
                 {s.comp  >  0 && <span style={{ fontSize: 12, color: 'var(--teal)'   }}>−{fmt(s.comp)} comp.</span>}
                 {s.extra >  0 && <span style={{ fontSize: 12, color: 'var(--purple)' }}>+{fmt(s.extra)} extras</span>}
-                {pExt    >  0 && <span style={{ fontSize: 12, color: 'var(--amber)'  }}>💰 {fmtMin(pExt)} ext. pag.</span>}
-                {pOrd    >  0 && <span style={{ fontSize: 12, color: 'var(--amber)'  }}>💰 {fmtMin(pOrd)} ord. pag.</span>}
+                {pExt    >  0 && <span style={{ fontSize: 12, color: 'var(--green)' }}>💰 {fmtMin(pExt)} ext. pag.</span>}
+                {pOrd    >  0 && <span style={{ fontSize: 12, color: BLUE         }}>💰 {fmtMin(pOrd)} ord. pag.</span>}
                 {specRecs.length > 0 && <span className="b ba" style={{ fontSize: 11 }}>⭐ ×{specRecs.length}</span>}
                 {catUpRecs.length > 0 && <span className="b bp" style={{ fontSize: 11 }}>⬆ ×{catUpRecs.length}</span>}
                 {kmTotal > 0 && <span style={{ fontSize: 12, color: 'var(--coral)' }}>🚗 {eur(kmTotal)} km</span>}
