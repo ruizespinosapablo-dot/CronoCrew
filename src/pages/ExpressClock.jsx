@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { fmtDate, fmt, t2m } from '../lib/utils';
-import logo from '../assets/logo.svg';
 
 const S = {
   page: {
@@ -105,9 +104,15 @@ export default function ExpressClock({ token }) {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     doc.setFillColor(14, 16, 24); doc.rect(0, 0, 595, 64, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-    doc.text('ClapTime', 40, 40);
-    doc.setTextColor(26, 29, 41); doc.setFontSize(15);
+    try {
+      const blob = await (await fetch('/claptime-wordmark.png')).blob();
+      const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+      doc.addImage(dataUrl, 'PNG', 40, 19, 26 * (2292 / 305), 26); // logo lockup (ratio ~7.5:1)
+    } catch {
+      doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+      doc.text('ClapTime', 40, 40);
+    }
+    doc.setTextColor(26, 29, 41); doc.setFontSize(15); doc.setFont('helvetica', 'normal');
     doc.text('Comprobante de fichaje', 40, 100);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(63, 68, 83);
     const rows = [
@@ -150,7 +155,7 @@ export default function ExpressClock({ token }) {
 
   if (fetchError) return (
     <div style={S.page}>
-      <img src={logo} alt="ClapTime" style={{ width: 44, marginBottom: 20 }} />
+      <img src="/claptime-wordmark.png" alt="ClapTime" style={{ height: 34, marginBottom: 20 }} />
       <div style={{ ...S.card, textAlign: 'center' }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
         <div style={{ color: 'var(--coral)', fontSize: 15, fontWeight: 600 }}>{fetchError}</div>
@@ -167,7 +172,7 @@ export default function ExpressClock({ token }) {
     );
     return (
       <div style={S.page}>
-        <img src={logo} alt="ClapTime" style={{ width: 44, marginBottom: 20 }} />
+        <img src="/claptime-wordmark.png" alt="ClapTime" style={{ height: 34, marginBottom: 20 }} />
         <div style={S.card}>
           <div style={{ textAlign: 'center', marginBottom: '1.1rem' }}>
             <div style={{ fontSize: 40, marginBottom: 6 }}>✅</div>
@@ -211,7 +216,7 @@ export default function ExpressClock({ token }) {
 
   return (
     <div style={S.page}>
-      <img src={logo} alt="ClapTime" style={{ width: 44, marginBottom: 20 }} />
+      <img src="/claptime-wordmark.png" alt="ClapTime" style={{ height: 34, marginBottom: 20 }} />
       <div style={S.card}>
         {/* Cabecera */}
         <div style={{ marginBottom: '1.25rem' }}>

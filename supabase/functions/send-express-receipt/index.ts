@@ -10,7 +10,7 @@ const ALLOWED_ORIGINS = [
 // Remitente del comprobante (dominio verificado en Resend).
 const RECEIPT_FROM = Deno.env.get('RECEIPT_FROM') ?? 'ClapTime <no-reply@send.clapsuite.com>'
 // Logo de ClapTime (imagen, para que no se "traduzca" el texto en algunos clientes).
-const LOGO_URL = Deno.env.get('LOGO_URL') ?? 'https://claptime.clapsuite.com/logo.png'
+const LOGO_URL = Deno.env.get('LOGO_URL') ?? 'https://claptime.clapsuite.com/claptime-wordmark.png'
 
 const corsHeadersFor = (req: Request) => {
   const origin = req.headers.get('Origin') ?? ''
