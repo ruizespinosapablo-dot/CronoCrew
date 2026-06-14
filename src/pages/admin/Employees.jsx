@@ -3,12 +3,10 @@ import { useApp } from '../../context/AppContext';
 import { fmtDate, getToday } from '../../lib/utils';
 import { DEPARTMENTS } from '../../lib/constants';
 import EditEmployeeModal from '../../components/modals/EditEmployeeModal';
-import NewEmployeeModal from '../../components/modals/NewEmployeeModal';
 
 export default function Employees() {
   const { emps } = useApp();
   const [editEmpId, setEditEmpId] = useState(null);
-  const [showNewEmp, setShowNewEmp] = useState(false);
 
   const today = getToday();
 
@@ -29,9 +27,6 @@ export default function Employees() {
           <h1>Empleados</h1>
           <p>Plantilla activa a día de hoy — {activeEmps.length} empleados</p>
         </div>
-        <button className="btn-accent" onClick={() => setShowNewEmp(true)}>
-          <i className="ti ti-plus" /> Nuevo empleado
-        </button>
       </div>
 
       {/* ── Plantilla activa por departamentos ── */}
@@ -104,7 +99,6 @@ export default function Employees() {
       )}
 
       {editEmpId && <EditEmployeeModal empId={editEmpId} onClose={() => setEditEmpId(null)} />}
-      {showNewEmp && <NewEmployeeModal onClose={() => setShowNewEmp(false)} />}
     </>
   );
 }
