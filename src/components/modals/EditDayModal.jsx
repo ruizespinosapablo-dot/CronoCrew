@@ -60,6 +60,11 @@ export default function EditDayModal({ empId, date, onClose }) {
     // Jornada especial: automática si la citación supera 9h15 (555 min), igual que en Fichar.
     const citedNetMin = t2m(citedOut) - t2m(citedIn) - (parseInt(brk) || 0);
     const autoSpecial = citedNetMin > 555;
+    // La entrada no puede ser anterior a la hora de citación.
+    if (!isActor && !isLibranza && entry && t2m(entry) < t2m(citedIn)) {
+      window.alert(`La entrada no puede ser anterior a la hora citada (${citedIn}).`);
+      return;
+    }
     if (isActor && !isLibranza) {
       upsertRec({
         id: rec?.id || crypto.randomUUID(),

@@ -119,6 +119,11 @@ export default function Clock({ emp }) {
       t = type === 'in' ? custIn : custOut;
       if (!t) { showToast('Introduce una hora personalizada.', 'warning'); return; }
     }
+    // No se puede fichar la entrada antes de la hora de citación.
+    if (type === 'in' && t2m(t) < t2m(citedIn)) {
+      showToast(`No puedes fichar la entrada antes de tu hora citada (${citedIn}).`, 'warning');
+      return;
+    }
     const methodLabel = method === 'def' ? 'Hora citada' : method === 'now' ? 'Hora actual' : 'Personalizada';
     const existing = recs.find(r => r.eid === emp.id && r.date === TODAY);
     if (type === 'in') {
@@ -225,6 +230,7 @@ export default function Clock({ emp }) {
       });
     } else {
       if (!pastEntry || !pastExit) { showToast('Indica entrada y salida.', 'warning'); return; }
+      if (t2m(pastEntry) < t2m(emp.start)) { showToast(`La entrada no puede ser anterior a la hora citada (${emp.start}).`, 'warning'); return; }
       upsertRec({
         id: recId, eid: emp.id, date: selectedPast,
         entry: pastEntry, exit: pastExit, brk: parseInt(pastBrk) || emp.brk,
