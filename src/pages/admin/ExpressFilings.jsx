@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
+import { supabase } from '../../lib/supabase';
 import { fmtDate, fmt, t2m } from '../../lib/utils';
 import { DEPARTMENTS } from '../../lib/constants';
 
@@ -10,8 +11,39 @@ const STATUS_LABEL = {
 };
 
 export default function ExpressFilings() {
-  const { expressLinks, addExpressLink, importExpressLink, deleteExpressLink } = useApp();
+  const { expressLinks, addExpressLink, importExpressLink, deleteExpressLink, currentUser } = useApp();
   const { showToast } = useToast();
+
+  // Refuerzos que los jefes de equipo han planificado en ClapCrew. ClapTime
+  // solo LEE esta tabla: quien la escribe es ClapCrew. Es la única dependencia
+  // de ClapTime hacia ClapCrew, y va en un solo sentido a propósito.
+  const [refuerzos, setRefuerzos] = useState([]);
+  const prodId = currentUser?.productionId || null;
+
+  const cargarRefuerzos = useCallback(async () => {
+    if (!supabase || !prodId) return;
+    const hoy = new Date().toISOString().slice(0, 10);
+    const { data: temps, error } = await supabase
+      .from('crew_temp_people').select('*').eq('production_id', prodId);
+    // Si ClapCrew aún no está instalado la tabla no existe: no es un error que
+    // deba romper esta pantalla, simplemente no hay refuerzos que enseñar.
+    if (error || !temps?.length) { setRefuerzos([]); return; }
+
+    const { data: turnos } = await supabase
+      .from('crew_shifts')
+      .select('eid, date, cited_in, cited_out, brk, location, status')
+      .eq('production_id', prodId)
+      .in('eid', temps.map(t => t.id))
+      .gte('date', hoy)
+      .order('date');
+
+    setRefuerzos(temps.map(t => ({
+      ...t,
+      turnos: (turnos || []).filter(s => s.eid === t.id),
+    })).filter(t => t.turnos.length));
+  }, [prodId]);
+
+  useEffect(() => { cargarRefuerzos(); }, [cargarRefuerzos]);
 
   // Formulario
   const today = new Date().toISOString().slice(0, 10);
@@ -60,6 +92,76 @@ export default function ExpressFilings() {
           <p>Envía un enlace de fichaje a refuerzos sin necesidad de cuenta</p>
         </div>
       </div>
+
+      {/* Refuerzos planificados en ClapCrew */}
+      {refuerzos.length > 0 && (
+        <div className="card-section">
+          <h3>Refuerzos planificados en ClapCrew</h3>
+          <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: '1rem' }}>
+            Los jefes de equipo ya les han puesto turno. Pulsa «Usar» para rellenar
+            el formulario de abajo con sus datos y su citación.
+          </p>
+          <div className="tbl-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Refuerzo</th>
+                  <th style={{ textAlign: 'left' }}>Departamento</th>
+                  <th style={{ textAlign: 'left' }}>DNI</th>
+                  <th style={{ textAlign: 'left' }}>Próximos turnos</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {refuerzos.map(r => (
+                  <tr key={r.id}>
+                    <td style={{ textAlign: 'left' }}>
+                      {r.name || r.label}
+                      {r.name && <span style={{ color: 'var(--text3)' }}> · {r.label}</span>}
+                      {r.role && <span style={{ display: 'block', color: 'var(--text3)', fontSize: 11 }}>{r.role}</span>}
+                    </td>
+                    <td style={{ textAlign: 'left' }}>{r.dept}</td>
+                    <td style={{ textAlign: 'left', color: r.dni ? 'var(--text)' : 'var(--coral)' }}>
+                      {r.dni || 'falta'}
+                    </td>
+                    <td style={{ textAlign: 'left', fontSize: 12 }}>
+                      {r.turnos.slice(0, 3).map(t => (
+                        <span key={t.date} style={{ display: 'block', color: 'var(--text2)' }}>
+                          {fmtDate(t.date)} · {t.cited_in}–{t.cited_out}
+                          {t.location ? ` · ${t.location}` : ''}
+                          {t.status === 'draft' ? ' (borrador)' : ''}
+                        </span>
+                      ))}
+                      {r.turnos.length > 3 && (
+                        <span style={{ color: 'var(--text3)' }}>+{r.turnos.length - 3} más</span>
+                      )}
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {r.turnos.map(t => (
+                        <button key={t.date} className="btn-sm" style={{ marginRight: 5 }}
+                          onClick={() => {
+                            setName(r.name || r.label);
+                            setDni(r.dni || '');
+                            setDept(r.dept || 'Producción');
+                            setRole(r.role || '');
+                            setDate(t.date);
+                            setCitedIn(t.cited_in);
+                            setCitedOut(t.cited_out);
+                            setBrk(t.brk ?? 60);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            if (!r.dni) showToast('Este refuerzo no tiene DNI: sin él, cada día le crearía una ficha nueva.', 'warning');
+                          }}>
+                          Usar {fmtDate(t.date)}
+                        </button>
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Formulario nuevo enlace */}
       <div className="card-section">

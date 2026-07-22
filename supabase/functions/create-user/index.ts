@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // Orígenes permitidos: producción + dominio de transición de Vercel + local
 const ALLOWED_ORIGINS = [
   'https://claptime.clapsuite.com',
+  'https://clapcrew.clapsuite.com',
   'https://cronocrew.vercel.app',
   'http://localhost:5173',
 ]
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
     if (!email || !name) {
       throw new ApiError('email y name son obligatorios')
     }
-    if (role && !['employee', 'admin', 'super_admin'].includes(role)) {
+    if (role && !['employee', 'admin', 'super_admin', 'dept_head'].includes(role)) {
       throw new ApiError('Rol no válido')
     }
 
