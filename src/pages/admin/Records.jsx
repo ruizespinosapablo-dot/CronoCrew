@@ -4,21 +4,12 @@ import { calcRecForEmp, fmt, fmtDate, t2m } from '../../lib/utils';
 import { DEPARTMENTS } from '../../lib/constants';
 import EditRecordModal from '../../components/modals/EditRecordModal';
 
-// Descansos mínimos (convenios + STS 274/2026). Fáciles de ajustar.
-const REST_DAY_H = 12;            // técnicos: entre fin de jornada e inicio de la siguiente
-const REST_DAY_ACTOR_H = 13;     // actores: convenio de actores (mín. 13h entre jornadas)
-const REST_WEEKEND_H = 60;       // técnicos: descanso semanal (STS 274/2026)
-const REST_WEEKEND_ACTOR_H = 48; // actores: descanso semanal según su convenio
-
-// ¿Hay un sábado o domingo entre dos fechas (exclusivas)? → aplica descanso semanal.
-function weekendBetween(d1, d2) {
-  const b = new Date(d2 + 'T00:00:00');
-  for (let t = new Date(new Date(d1 + 'T00:00:00').getTime() + 86400000); t < b; t = new Date(t.getTime() + 86400000)) {
-    const wd = t.getDay();
-    if (wd === 0 || wd === 6) return true;
-  }
-  return false;
-}
+// Los descansos mínimos viven en lib/calc.js, que es el origen único que
+// comparten ClapTime y ClapCrew: si cada app tuviera sus números, acabarían
+// diciendo cosas distintas sobre la misma jornada.
+import {
+  REST_DAY_H, REST_DAY_ACTOR_H, REST_WEEKEND_H, REST_WEEKEND_ACTOR_H, weekendBetween,
+} from '../../lib/calc';
 
 export default function Records() {
   const { emps, recs, paid, festivos, updateRec } = useApp();

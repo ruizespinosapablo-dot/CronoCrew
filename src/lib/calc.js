@@ -94,3 +94,46 @@ export function calcPeriod(eid, emps, recs, filterFn) {
   const total = isActor ? (accum - comp) : (accum + extra * 1.5 - comp);
   return { accum, comp, extra, total, days };
 }
+
+// ─── Descansos mínimos entre jornadas ───────────────────────────────────────
+// Convenios del sector + STS 274/2026. Los usan ClapTime (sobre fichajes
+// reales) y ClapCrew (sobre citaciones planificadas). Si cambian, se cambian
+// AQUÍ y se sincroniza ClapCrew.
+export const REST_DAY_H = 12;            // técnicos: entre fin de jornada e inicio de la siguiente
+export const REST_DAY_ACTOR_H = 13;      // actores: su convenio exige 13h
+export const REST_WEEKEND_H = 60;        // técnicos: descanso semanal (STS 274/2026)
+export const REST_WEEKEND_ACTOR_H = 48;  // actores: descanso semanal de su convenio
+
+// ¿Hay sábado o domingo ENTRE las dos fechas (sin contarlas)? Entonces lo que
+// aplica es el descanso semanal, no el de entre jornadas.
+export function weekendBetween(d1, d2) {
+  const b = new Date(d2 + 'T00:00:00');
+  for (let t = new Date(new Date(d1 + 'T00:00:00').getTime() + 86400000); t < b; t = new Date(t.getTime() + 86400000)) {
+    const wd = t.getDay();
+    if (wd === 0 || wd === 6) return true;
+  }
+  return false;
+}
+
+// Horas de descanso entre el final de una jornada y el principio de la
+// siguiente. Si la salida es menor o igual que la entrada, esa jornada cruzó
+// medianoche y terminó al día siguiente.
+export function restGapH(prevDate, prevIn, prevOut, curDate, curIn) {
+  const pIn = t2m(prevIn), pOut = t2m(prevOut);
+  const salida = new Date(prevDate + 'T00:00:00');
+  if (pOut <= pIn) salida.setDate(salida.getDate() + 1);
+  const salidaMs = salida.getTime() + pOut * 60000;
+  const entradaMs = new Date(curDate + 'T00:00:00').getTime() + t2m(curIn) * 60000;
+  return (entradaMs - salidaMs) / 3600000;
+}
+
+// Devuelve null si el descanso es suficiente; si no, cuánto hay y cuánto exige.
+export function restCheck(prev, cur, esActor = false) {
+  const gapH = restGapH(prev.date, prev.citedIn, prev.citedOut, cur.date, cur.citedIn);
+  if (gapH < 0) return null;
+  const finde = weekendBetween(prev.date, cur.date);
+  const reqH = finde
+    ? (esActor ? REST_WEEKEND_ACTOR_H : REST_WEEKEND_H)
+    : (esActor ? REST_DAY_ACTOR_H : REST_DAY_H);
+  return gapH < reqH ? { gapH, reqH, finde, prevDate: prev.date } : null;
+}
