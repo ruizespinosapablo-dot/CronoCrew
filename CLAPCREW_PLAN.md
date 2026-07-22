@@ -13,14 +13,19 @@
 Un único **Supabase** (proyecto CronoCrew, el actual) y **frontends separados**.
 Cada dato tiene UN dueño; las demás apps lo leen, nunca lo escriben.
 
+El sistema son DOS apps: **ClapCrew** (ingesta y organiza: empleados, turnos, orden del
+día) y **ClapTime** (registra: fichaje y todo lo legal).
+
 | App | Dominio | Función | Escribe | Lee |
 |---|---|---|---|---|
-| **ClapCrew** | clapcrew.clapsuite.com | Organizar: equipo, turnos/citaciones, orden del día | `crew_shifts`, `crew_days`, altas de empleados (vía Edge Function `create-user`) | `emps`, `productions`, `profiles`, `festivos` |
-| **ClapTime** | claptime.clapsuite.com | Registrar: fichaje, saldos, permisos, descansos | `recs`, `paid`, `requests`, `admin_perms`, `festivos`, `express_links` | `crew_shifts` (solo publicados, para prefill de citación) |
-| **ClapPay** | pay.clapsuite.com | Pagar: tarifas, cuadro de nóminas, export gestoría | `pay_rates`, `pay_month` | `emps`, `recs`, `paid` |
+| **ClapCrew** | clapcrew.clapsuite.com | Organizar: alta de empleados, equipo, turnos/citaciones, orden del día | `crew_shifts`, `crew_days`, altas de empleados (vía Edge Function `create-user`) | `emps`, `productions`, `profiles`, `festivos` |
+| **ClapTime** | claptime.clapsuite.com | Registrar: fichaje, saldos, permisos, descansos, informes | `recs`, `paid`, `requests`, `admin_perms`, `festivos`, `express_links` | `crew_shifts` (solo publicados, para prefill de citación) |
 
 **Regla de oro:** ClapCrew JAMÁS escribe en `recs`. La citación planificada viaja por
 `crew_shifts`; ClapTime la lee al fichar. El registro horario legal es solo de ClapTime.
+
+> **ClapPay queda APARCADO como producto** (no desarrollar, no mencionar en UI).
+> Su repo `~/ClapPay` se conserva únicamente como plantilla técnica de scaffolding.
 
 ## 2. Arquitectura técnica
 
@@ -163,15 +168,16 @@ publicado para (mi eid, hoy), usarlo como citación inicial.
 
 ## 7. Estructura del repo `~/ClapCrew`
 
-Clonar el patrón de `~/ClapPay` (mismo `vite.config.js`, `vercel.json` adaptado, mismos
-patrones de contexto). Árbol objetivo:
+Clonar el patrón técnico de `~/ClapPay` (repo aparcado como producto, útil solo como
+plantilla: mismo `vite.config.js`, `vercel.json` adaptado, mismos patrones de contexto).
+Si ese repo no estuviera disponible, los mismos patrones existen en `~/CronoCrew`. Árbol objetivo:
 
 ```
 ClapCrew/
-├── package.json              # deps: @supabase/supabase-js, react, react-dom (SIN xlsx)
+├── package.json              # deps: @supabase/supabase-js, react, react-dom
 ├── vite.config.js            # igual que ClapPay
 ├── vercel.json               # copiar de ClapPay, misma CSP (mismo supabase URL)
-├── .env                      # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY (mismas que ClapPay)
+├── .env                      # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY (mismas que ClapTime)
 ├── index.html                # título "ClapCrew · Planificación", fuentes Syne/DM Sans/DM Mono
 ├── sql/
 │   ├── 01_clapcrew_schema.sql
@@ -267,7 +273,7 @@ Convenciones obligatorias (las de ClapTime/ClapPay):
 
 ## 10. Referencias para el ejecutor
 
-- Patrones de app hermana: `~/ClapPay/src/**` (Auth, contexto, Login, Layout).
+- Patrones de app hermana: `~/ClapPay/src/**` (SOLO como plantilla de código; el producto ClapPay está aparcado).
 - Tokens de diseño: `~/CronoCrew/src/index.css` (líneas 1–30).
 - Helpers RLS existentes: `~/CronoCrew/rls_policies_v2.sql` (líneas 15–45).
 - Convención semanal: `weekDates()` en `~/CronoCrew/src/lib/utils.js`.

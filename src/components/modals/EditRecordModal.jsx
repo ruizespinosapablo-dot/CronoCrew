@@ -323,7 +323,7 @@ export default function EditRecordModal({ recId, onClose }) {
               <div className="fg" style={{ marginTop: '.6rem', marginBottom: 0 }}>
                 <label>Importe a pagar (€){rec.kmCount ? ` · ${rec.kmCount} km declarados` : ''}</label>
                 <input type="number" min={0} step="0.01" value={kmEur} onChange={e => setKmEur(e.target.value)} placeholder="Ej: 12.50" />
-                <span style={{ fontSize: 11, color: 'var(--text3)' }}>Aparecerá en Informes y se podrá exportar a ClapPay.</span>
+                <span style={{ fontSize: 11, color: 'var(--text3)' }}>Aparecerá en Informes.</span>
               </div>
             )}
           </div>
