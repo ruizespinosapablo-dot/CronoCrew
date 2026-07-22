@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS crew_shifts (
   date          DATE NOT NULL,
   cited_in      TEXT NOT NULL,               -- 'HH:MM'
   cited_out     TEXT NOT NULL,               -- 'HH:MM'
+  brk           INTEGER NOT NULL DEFAULT 60, -- descanso en min (0 = sin descanso; editable en casos raros)
   location      TEXT,                        -- set/localización (texto libre v1)
   notes         TEXT,
   status        TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published')),
@@ -159,8 +160,8 @@ publicado para (mi eid, hoy), usarlo como citación inicial.
 - Archivo: `~/CronoCrew/src/pages/employee/Clock.jsx`
   - En el estado inicial: `citedIn`/`citedOut` parten de `emp.start`/`emp.end` como hoy;
     añadir un `useEffect` que haga
-    `supabase.from('crew_shifts').select('cited_in, cited_out, location').eq('eid', emp.id).eq('date', TODAY).eq('status','published').maybeSingle()`
-    y si hay fila: `setCitedIn/setCitedOut` (solo si el usuario aún no fichó ese día)
+    `supabase.from('crew_shifts').select('cited_in, cited_out, brk, location').eq('eid', emp.id).eq('date', TODAY).eq('status','published').maybeSingle()`
+    y si hay fila: `setCitedIn/setCitedOut/setBrkMins` (solo si el usuario aún no fichó ese día)
     + banner pequeño "📋 Citación de ClapCrew · {location}".
 - Archivo: `~/CronoCrew/src/pages/employee/ActorClock.jsx` — igual con
   `actorCited`/`actorEnd`.
@@ -233,7 +234,7 @@ Convenciones obligatorias (las de ClapTime/ClapPay):
 1. `CrewContext.jsx`: carga `emps` (activos, `!archived`) y `crew_shifts` de la semana visible; helpers `upsertShift`, `deleteShift`, `publishWeek(dates)` (pasa a `published` todos los draft de la semana), `copyWeek(from,to)`.
 2. `Team.jsx`: tabla de equipo agrupada por departamento (nombre, cargo, horario por defecto `start/end`). Solo lectura en v1.
 3. `Planner.jsx`: **grid semanal** — filas = empleados (agrupados por depto, filtro de depto arriba), columnas = L–D de la semana (selector de semana como el de ClapTime `weekDates`). Celda:
-   - vacía → click abre mini-form (cited_in/cited_out con default del horario del emp, location, notes) → crea draft.
+   - vacía → click abre mini-form (cited_in/cited_out con default del horario del emp; **descanso: checkbox marcado por defecto con 60 min**, desmarcable → `brk=0`, y cuantía editable para casos raros; location; notes) → crea draft.
    - con turno → muestra `HH:MM–HH:MM` + location; borde discontinuo si draft, sólido si published; click edita; botón ✕ borra.
    - festivos de la producción sombreados (leer `festivos`).
 4. Botones de cabecera: **“Publicar semana”** (confirm + publishWeek) y “Copiar semana anterior”.
