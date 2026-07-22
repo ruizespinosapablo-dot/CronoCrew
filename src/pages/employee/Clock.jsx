@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
+import { supabase } from '../../lib/supabase';
 import { calcRec, fmt, fmtDate, getToday, t2m } from '../../lib/utils';
 
 const PERM_REASONS = ['Médico (propio)', 'Acompañamiento a familiar', 'Asuntos propios', 'Deber público', 'Otro'];
@@ -57,6 +58,35 @@ export default function Clock({ emp }) {
   const todayFestivo = todayIsFestivo ? festivos.find(f => f.date === TODAY) : null;
 
   const rec = recs.find(r => r.eid === emp.id && r.date === TODAY);
+
+  // ─── Citación planificada en ClapCrew ─────────────────────────────────────
+  // Solo LECTURA y solo de turnos publicados. ClapCrew nunca escribe en recs:
+  // el registro horario legal sigue siendo únicamente de ClapTime. Esto se
+  // limita a proponer la citación de partida en lugar del horario de la ficha.
+  const [plan, setPlan] = useState(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let vivo = true;
+    (async () => {
+      const { data } = await supabase
+        .from('crew_shifts')
+        .select('kind, cited_in, cited_out, brk, location')
+        .eq('eid', emp.id).eq('date', TODAY).eq('status', 'published')
+        .maybeSingle();
+      if (vivo) setPlan(data || null);
+    })();
+    return () => { vivo = false; };
+  }, [emp.id, TODAY]);
+
+  // Se precarga solo si aún no hay fichaje del día: si ya fichó, sus horas
+  // mandan y sobrescribirlas sería pisarle datos ya introducidos.
+  useEffect(() => {
+    if (!plan || rec || plan.kind === 'libranza') return;
+    if (plan.cited_in) setCitedIn(plan.cited_in);
+    if (plan.cited_out) setCitedOut(plan.cited_out);
+    if (plan.brk != null) setBrkMins(plan.brk);
+  }, [plan, rec]);
   const calc = rec?.exit ? calcRec({ ...rec, citedIn, citedOut, brk: parseInt(brkMins) || emp.brk }, emp) : null;
 
   // Mientras el día es 'draft' el empleado edita libremente. Al confirmar pasa a
@@ -280,6 +310,27 @@ export default function Clock({ emp }) {
           <p>Horario: {emp.start}–{emp.end} | Descanso {emp.brk}min | Contrato {emp.ch}h/día</p>
         </div>
       </div>
+
+      {plan?.kind === 'libranza' && !rec && (
+        <div style={{ background: 'rgba(45,212,191,0.08)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', padding: '1rem 1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <span style={{ fontWeight: 700, color: 'var(--teal)' }}>📋 HOY LIBRAS</span>
+            <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--text2)' }}>
+              Según la planificación de producción
+            </span>
+          </div>
+          <button className="btn-teal" onClick={doLibranza}>MARCAR LIBRANZA</button>
+        </div>
+      )}
+
+      {plan && plan.kind !== 'libranza' && !rec && (
+        <div style={{ background: 'rgba(45,212,191,0.08)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', padding: '.8rem 1.2rem', marginBottom: '1rem', fontSize: 13, color: 'var(--text2)' }}>
+          <span style={{ fontWeight: 700, color: 'var(--teal)' }}>📋 Citación de producción</span>
+          {' · '}{plan.cited_in}–{plan.cited_out}
+          {plan.brk != null ? ` · ${plan.brk} min de descanso` : ''}
+          {plan.location ? ` · ${plan.location}` : ''}
+        </div>
+      )}
 
       {todayIsFestivo && !rec && (
         <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid var(--amber)', borderRadius: 'var(--r)', padding: '1rem 1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>

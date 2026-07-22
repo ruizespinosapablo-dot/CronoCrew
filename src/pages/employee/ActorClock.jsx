@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
+import { supabase } from '../../lib/supabase';
 import { calcActorRec, fmt, fmtDate, getToday } from '../../lib/utils';
 
 function MinInput({ label, value, onChange }) {
@@ -56,6 +57,32 @@ export default function ActorClock({ emp }) {
   const todayFestivo = todayIsFestivo ? festivos.find(f => f.date === TODAY) : null;
 
   const rec = recs.find(r => r.eid === emp.id && r.date === TODAY);
+
+  // ─── Citación planificada en ClapCrew ─────────────────────────────────────
+  // Igual que en Clock: solo lectura de turnos publicados. Aquí se precargan
+  // actorCited/actorEnd; el descanso del actor tiene su propia lógica y no se
+  // toca desde la planificación.
+  const [plan, setPlan] = useState(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let vivo = true;
+    (async () => {
+      const { data } = await supabase
+        .from('crew_shifts')
+        .select('kind, cited_in, cited_out, location')
+        .eq('eid', emp.id).eq('date', TODAY).eq('status', 'published')
+        .maybeSingle();
+      if (vivo) setPlan(data || null);
+    })();
+    return () => { vivo = false; };
+  }, [emp.id, TODAY]);
+
+  useEffect(() => {
+    if (!plan || rec || plan.kind === 'libranza') return;
+    if (plan.cited_in) setActorCited(plan.cited_in);
+    if (plan.cited_out) setActorEnd(plan.cited_out);
+  }, [plan, rec]);
 
   // Live preview of current form values
   const previewRec = { actorCited, actorEnd, actorMakeup: +actorMakeup, actorTravelIn: +actorTravelIn, actorTravelOut: +actorTravelOut, actorBreak: +actorBreak };
@@ -156,6 +183,20 @@ export default function ActorClock({ emp }) {
           <p>Contrato: {emp.ch}h/día · {emp.name}</p>
         </div>
       </div>
+
+      {plan && !rec && (
+        <div style={{ background: 'rgba(45,212,191,0.08)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', padding: '.8rem 1.2rem', marginBottom: '1rem', fontSize: 13, color: 'var(--text2)' }}>
+          <span style={{ fontWeight: 700, color: 'var(--teal)' }}>
+            📋 {plan.kind === 'libranza' ? 'Hoy libras' : 'Citación de producción'}
+          </span>
+          {plan.kind !== 'libranza' && (
+            <>
+              {' · '}{plan.cited_in}–{plan.cited_out}
+              {plan.location ? ` · ${plan.location}` : ''}
+            </>
+          )}
+        </div>
+      )}
 
       {todayIsFestivo && !rec && (
         <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid var(--amber)', borderRadius: 'var(--r)', padding: '1rem 1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
