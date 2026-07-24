@@ -441,7 +441,7 @@ export default function Clock({ emp }) {
             <button className="btn-libranza" onClick={doLibranza}>📅 Hoy libro</button>
           </div>
           <p className="fichar-hint" style={{ marginBottom: '.85rem' }}>
-            Cambia el descanso si hoy no has disfrutado tus {emp.brk} min habituales. La libranza compensa {emp.ch}h de contrato.
+            La libranza compensa {emp.ch}h de contrato.
           </p>
 
           {/* Lo que casi nunca se usa, plegado */}
@@ -467,7 +467,12 @@ export default function Clock({ emp }) {
                   <label className="fx-chk">
                     <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} /> 🚗 Aplicar
                   </label>
-                  {kmOn && <input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="km" className="fx-num" />}
+                  {kmOn && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="nº km" className="fx-num" style={{ width: 84 }} />
+                      <span className="fichar-hint">km (opcional)</span>
+                    </span>
+                  )}
                   <button className="btn-sm" onClick={() => saveKm(kmOn)}>Aplicar</button>
                   {rec?.kmApplied && (
                     <span className="b bp" style={{ fontSize: 11 }}>
@@ -475,7 +480,7 @@ export default function Clock({ emp }) {
                     </span>
                   )}
                 </div>
-                <p className="fichar-hint">El administrador asigna el importe en € al revisar tu jornada.</p>
+                <p className="fichar-hint">Marca la casilla si hoy usas tu vehículo. Poner el nº de km es opcional; el administrador asigna el importe en € al revisar tu jornada.</p>
               </div>
               <div className="fx-block">
                 <span className="fx-lbl">Observación del día</span>
