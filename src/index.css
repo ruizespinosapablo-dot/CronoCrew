@@ -334,3 +334,39 @@ tr[draggable]:active{cursor:grabbing;}
 tr.dragging{opacity:.4;}
 tr.drop-before td{box-shadow:inset 0 2px 0 var(--accent);}
 tr.drop-after td{box-shadow:inset 0 -2px 0 var(--accent);}
+
+/* ── FICHAR · panel del empleado rediseñado ── */
+.fichar-cita{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:.7rem 1rem;margin-bottom:.85rem;}
+.fichar-cita-lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);font-weight:700;margin-bottom:2px;}
+.fichar-cita-val{font-family:'DM Mono',monospace;font-size:15px;color:var(--text);}
+.fichar-ajuste{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:.7rem 1rem;margin-bottom:.85rem;font-size:12px;color:var(--text2);}
+.fichar-ajuste input{background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;outline:none;}
+
+.fichar-acciones{display:flex;gap:12px;margin-bottom:.75rem;flex-wrap:wrap;}
+.fa-col{flex:1;min-width:220px;}
+.fbtn{width:100%;border:none;border-radius:12px;padding:16px;cursor:pointer;text-align:left;display:flex;align-items:baseline;justify-content:space-between;gap:10px;transition:opacity .15s;}
+.fbtn:hover{opacity:.9;}
+.fbtn-k{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
+.fbtn-h{font-family:'DM Mono',monospace;font-size:16px;opacity:.85;}
+.fbtn-in{background:var(--teal);color:#0a0b0f;}
+.fbtn-out{background:var(--coral);color:#0a0b0f;}
+.fa-alt{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.fa-time{background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:4px 6px;color:var(--text);font-size:12px;width:88px;outline:none;}
+
+.fichar-secundario{display:flex;align-items:center;gap:12px;margin-bottom:.85rem;flex-wrap:wrap;}
+.fichar-hint{font-size:11px;color:var(--text3);}
+
+.fichar-extra{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:0;margin-bottom:.85rem;}
+.fichar-extra>summary{list-style:none;cursor:pointer;padding:.7rem 1rem;font-size:13px;color:var(--text2);}
+.fichar-extra>summary::-webkit-details-marker{display:none;}
+.fichar-extra>summary::before{content:'▸ ';color:var(--text3);}
+.fichar-extra[open]>summary::before{content:'▾ ';}
+.fichar-extra[open]>summary{border-bottom:1px solid var(--border2);color:var(--text);}
+.fichar-extra-body{padding:1rem;display:flex;flex-direction:column;gap:1rem;}
+.fx-lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);font-weight:700;margin-bottom:.5rem;}
+.fx-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;}
+.fx-sel,.fx-num,.fx-obs{background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:5px 9px;color:var(--text);font-size:13px;outline:none;}
+.fx-num{width:72px;}
+.fx-obs{flex:1;min-width:180px;}
+.fx-chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;}
+.fx-chk input{width:16px;height:16px;cursor:pointer;}

@@ -15,6 +15,7 @@ export default function Clock({ emp }) {
   const [citedIn, setCitedIn] = useState(emp.start);
   const [citedOut, setCitedOut] = useState(emp.end);
   const [brkMins, setBrkMins] = useState(emp.brk);
+  const [ajustar, setAjustar] = useState(false);   // desplegar la edición de citación
   const [custIn, setCustIn] = useState('');
   const [custOut, setCustOut] = useState('');
   const [obs, setObs] = useState('');
@@ -369,99 +370,99 @@ export default function Clock({ emp }) {
             </div>
           )}
           <div style={{ opacity: locked ? 0.5 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
-          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Hora citada hoy</span>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <label style={{ fontSize: 12, color: 'var(--text2)' }}>Entrada</label>
-                <input type="time" className="tinput" value={citedIn} onChange={e => setCitedIn(e.target.value)} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <label style={{ fontSize: 12, color: 'var(--text2)' }}>Salida</label>
-                <input type="time" className="tinput" value={citedOut} onChange={e => setCitedOut(e.target.value)} />
-              </div>
+          {/* Citación de referencia + ajuste plegable */}
+          <div className="fichar-cita">
+            <div style={{ minWidth: 0 }}>
+              <span className="fichar-cita-lbl">Tu citación de hoy</span>
+              <span className="fichar-cita-val">
+                {citedIn} – {citedOut} · {brkMins} min descanso
+                {isLongCited && <span className="b ba" style={{ fontSize: 11, marginLeft: 8 }}>⭐ Especial</span>}
+              </span>
+            </div>
+            <button className="btn-sm" onClick={() => setAjustar(a => !a)}>{ajustar ? 'Cerrar' : 'Ajustar'}</button>
+          </div>
+          {ajustar && (
+            <div className="fichar-ajuste">
+              <label>Entrada <input type="time" className="tinput" value={citedIn} onChange={e => setCitedIn(e.target.value)} /></label>
+              <label>Salida <input type="time" className="tinput" value={citedOut} onChange={e => setCitedOut(e.target.value)} /></label>
+              <label>Descanso <input type="number" min={0} step={5} value={brkMins} onChange={e => setBrkMins(e.target.value)} style={{ width: 64 }} /> min</label>
               <button className="btn-sm" onClick={applyCited}>Aplicar</button>
-              {isLongCited && <span className="b ba" style={{ fontSize: 11 }}>⭐ Jornada especial</span>}
+            </div>
+          )}
+
+          {/* Acción principal: dos botones grandes */}
+          <div className="fichar-acciones">
+            <div className="fa-col">
+              <button className="fbtn fbtn-in" onClick={() => doFich('in', 'def')}>
+                <span className="fbtn-k">Fichar entrada</span>
+                <span className="fbtn-h">{citedIn}</span>
+              </button>
+              <div className="fa-alt">
+                <button className="btn-sm" onClick={() => doFich('in', 'now')}>Ahora · {time}</button>
+                <input type="time" value={custIn} onChange={e => setCustIn(e.target.value)} className="fa-time" />
+                <button className="btn-sm" onClick={() => doFich('in', 'cust')}>Otra</button>
+              </div>
+            </div>
+            <div className="fa-col">
+              <button className="fbtn fbtn-out" onClick={() => doFich('out', 'def')}>
+                <span className="fbtn-k">Fichar salida</span>
+                <span className="fbtn-h">{citedOut}</span>
+              </button>
+              <div className="fa-alt">
+                <button className="btn-sm" onClick={() => doFich('out', 'now')}>Ahora · {time}</button>
+                <input type="time" value={custOut} onChange={e => setCustOut(e.target.value)} className="fa-time" />
+                <button className="btn-sm" onClick={() => doFich('out', 'cust')}>Otra</button>
+              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: '.85rem' }}>
-            <div className="co-group">
-              <h4>Entrada</h4>
-              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                <button className="btn-ci" onClick={() => doFich('in', 'def')}>Hora citada</button>
-                <button className="btn-ci-outline" onClick={() => doFich('in', 'now')}>Hora actual</button>
-              </div>
-              <div style={{ marginTop: 7, display: 'flex', gap: 6, alignItems: 'center', minWidth: 0, overflow: 'hidden' }}>
-                <input type="time" value={custIn} onChange={e => setCustIn(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 95, minWidth: 0, maxWidth: '100%', outline: 'none' }} />
-                <button className="btn-sm" onClick={() => doFich('in', 'cust')}>Personalizada</button>
-              </div>
-            </div>
-            <div className="co-group">
-              <h4>Salida</h4>
-              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                <button className="btn-co" onClick={() => doFich('out', 'def')}>Hora citada</button>
-                <button className="btn-co-outline" onClick={() => doFich('out', 'now')}>Hora actual</button>
-              </div>
-              <div style={{ marginTop: 7, display: 'flex', gap: 6, alignItems: 'center', minWidth: 0, overflow: 'hidden' }}>
-                <input type="time" value={custOut} onChange={e => setCustOut(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 95, minWidth: 0, maxWidth: '100%', outline: 'none' }} />
-                <button className="btn-sm" onClick={() => doFich('out', 'cust')}>Personalizada</button>
-              </div>
-            </div>
-            <div className="co-group" style={{ flex: '0 0 auto' }}>
-              <h4>Libranza</h4>
-              <button className="btn-libranza" style={{ width: '100%' }} onClick={doLibranza}>📅 Marcar libranza</button>
-              <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>Compensa {emp.ch}h (jornada contrato)</p>
-            </div>
+
+          <div className="fichar-secundario">
+            <button className="btn-libranza" onClick={doLibranza}>📅 Hoy libro</button>
+            <span className="fichar-hint">La libranza compensa {emp.ch}h de contrato.</span>
           </div>
-          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700 }}>Descanso real</span>
-            <input type="number" value={brkMins} min={0} step={5} onChange={e => setBrkMins(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--amber)', fontSize: 13, fontWeight: 600, outline: 'none', width: 70 }} />
-            <span style={{ fontSize: 12, color: 'var(--text2)' }}>minutos</span>
-          </div>
-          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Ausencia parcial justificada (médico, etc.)</span>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <select value={permReason} onChange={e => setPermReason(e.target.value)} style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, outline: 'none' }}>
-                {PERM_REASONS.map(r => <option key={r}>{r}</option>)}
-              </select>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <input type="number" min={0} step={0.25} value={permH} onChange={e => setPermH(e.target.value)} placeholder="0" style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 70, outline: 'none' }} />
-                <span style={{ fontSize: 12, color: 'var(--text2)' }}>horas</span>
-              </div>
-              <button className="btn-sm" onClick={savePerm}>Aplicar</button>
-              {rec?.permMin > 0 && <span className="b bp" style={{ fontSize: 11 }}>{Math.round(rec.permMin / 60 * 100) / 100} h · {rec.permReason}</span>}
-            </div>
-            <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>No penaliza tu saldo: esas horas se descuentan de la jornada esperada del día.</p>
-          </div>
-          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem' }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: '.5rem' }}>Kilometraje</span>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
-                <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
-                🚗 Aplicar kilometraje
-              </label>
-              {kmOn && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="0" style={{ background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 13, width: 80, outline: 'none' }} />
-                  <span style={{ fontSize: 12, color: 'var(--text2)' }}>km (opcional)</span>
+
+          {/* Lo que casi nunca se usa, plegado */}
+          <details className="fichar-extra">
+            <summary>Añadir a la jornada — ausencia médica, kilometraje, observación</summary>
+            <div className="fichar-extra-body">
+              <div className="fx-block">
+                <span className="fx-lbl">Ausencia parcial justificada (médico, etc.)</span>
+                <div className="fx-row">
+                  <select value={permReason} onChange={e => setPermReason(e.target.value)} className="fx-sel">
+                    {PERM_REASONS.map(r => <option key={r}>{r}</option>)}
+                  </select>
+                  <input type="number" min={0} step={0.25} value={permH} onChange={e => setPermH(e.target.value)} placeholder="0" className="fx-num" />
+                  <span className="fichar-hint">horas</span>
+                  <button className="btn-sm" onClick={savePerm}>Aplicar</button>
+                  {rec?.permMin > 0 && <span className="b bp" style={{ fontSize: 11 }}>{Math.round(rec.permMin / 60 * 100) / 100} h · {rec.permReason}</span>}
                 </div>
-              )}
-              <button className="btn-sm" onClick={() => saveKm(kmOn)}>Aplicar</button>
-              {rec?.kmApplied && (
-                <span className="b bp" style={{ fontSize: 11 }}>
-                  🚗 {rec.kmEur != null ? `${rec.kmEur} €` : `${rec.kmCount ? rec.kmCount + ' km · ' : ''}pendiente de valorar`}
-                </span>
-              )}
+                <p className="fichar-hint">No penaliza tu saldo: se descuentan de la jornada esperada del día.</p>
+              </div>
+              <div className="fx-block">
+                <span className="fx-lbl">Kilometraje</span>
+                <div className="fx-row">
+                  <label className="fx-chk">
+                    <input type="checkbox" checked={kmOn} onChange={e => setKmOn(e.target.checked)} /> 🚗 Aplicar
+                  </label>
+                  {kmOn && <input type="number" min={0} step={1} value={kmCount} onChange={e => setKmCount(e.target.value)} placeholder="km" className="fx-num" />}
+                  <button className="btn-sm" onClick={() => saveKm(kmOn)}>Aplicar</button>
+                  {rec?.kmApplied && (
+                    <span className="b bp" style={{ fontSize: 11 }}>
+                      🚗 {rec.kmEur != null ? `${rec.kmEur} €` : `${rec.kmCount ? rec.kmCount + ' km · ' : ''}pendiente`}
+                    </span>
+                  )}
+                </div>
+                <p className="fichar-hint">El administrador asigna el importe en € al revisar tu jornada.</p>
+              </div>
+              <div className="fx-block">
+                <span className="fx-lbl">Observación del día</span>
+                <div className="fx-row">
+                  <input type="text" value={obs} onChange={e => setObs(e.target.value)} placeholder="Ej: rodaje exterior..." className="fx-obs" />
+                  <button className="btn-sm" onClick={saveObs}>Guardar</button>
+                </div>
+              </div>
             </div>
-            <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>El administrador le asignará el importe en € al revisar tu jornada.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', fontWeight: 700, display: 'block', marginBottom: 5 }}>Observación del día</label>
-              <input type="text" value={obs} onChange={e => setObs(e.target.value)} placeholder="Ej: rodaje exterior..." style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 13, outline: 'none' }} />
-            </div>
-            <button className="btn-accent" onClick={saveObs} style={{ flexShrink: 0, padding: '8px 14px', fontSize: 12 }}>Guardar obs.</button>
-          </div>
+          </details>
           </div>
           {!locked && rec?.entry && (
             <div style={{ marginTop: '.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', background: 'rgba(201,242,62,0.06)', border: '1px solid var(--accent)', borderRadius: 'var(--r)', padding: '.8rem 1rem' }}>
