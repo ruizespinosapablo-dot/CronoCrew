@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { calcRec, calcPeriod, fmt, fmtDate, getToday } from '../../lib/utils';
+import { calcRec, calcPeriod, fmt, fmtDate, getToday, sortByOrder } from '../../lib/utils';
 import { DEPARTMENTS } from '../../lib/constants';
 import EditRecordModal from '../../components/modals/EditRecordModal';
 
@@ -9,7 +9,16 @@ export default function Dashboard({ onNavigate }) {
   const [editRecId, setEditRecId] = useState(null);
 
   const today = getToday();
-  const activeEmps = emps.filter(e => !e.archived && (!e.cStart || e.cStart <= today) && (!e.cEnd || e.cEnd >= today));
+  const isActive = e => !e.archived && (!e.cStart || e.cStart <= today) && (!e.cEnd || e.cEnd >= today);
+  // Mismo orden que la pestaña Empleados: por departamento y, dentro, el orden
+  // manual. Así "Situación hoy" no baila respecto al resumen de abajo. Quien
+  // tenga un departamento fuera de la lista estándar se añade al final, para no
+  // desaparecer del recuento.
+  const base = emps.filter(isActive);
+  const activeEmps = [
+    ...DEPARTMENTS.flatMap(dept => sortByOrder(base.filter(e => e.dept === dept))),
+    ...sortByOrder(base.filter(e => !DEPARTMENTS.includes(e.dept))),
+  ];
   const todayRecs = recs.filter(r => r.date === today);
   const present = todayRecs.filter(r => r.entry && !r.absence && r.status !== 'draft').length;
   const pending = recs.filter(r => r.status === 'pending').length;
@@ -74,7 +83,7 @@ export default function Dashboard({ onNavigate }) {
 
       <h2 style={{ margin: '2rem 0 1rem', fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Resumen por departamento</h2>
       {DEPARTMENTS.filter(dept => emps.some(e => e.dept === dept && !e.archived)).map(dept => {
-        const deptEmps = emps.filter(e => e.dept === dept && !e.archived);
+        const deptEmps = sortByOrder(emps.filter(e => e.dept === dept && !e.archived));
         return (
           <div key={dept} className="tc" style={{ marginBottom: '1.25rem' }}>
             <div className="tch"><h3 style={{ margin: 0 }}>{dept}</h3></div>

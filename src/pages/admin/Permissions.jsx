@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { fmtDate } from '../../lib/utils';
+import { DEPARTMENTS } from '../../lib/constants';
 
 // Colores de badge por tipo de permiso (registro).
 const TYPE_CLASS = {
@@ -31,6 +32,7 @@ export default function Permissions() {
   const { showToast } = useToast();
   const [vacEmps, setVacEmps] = useState([]);
   const [vacSearch, setVacSearch] = useState('');
+  const [vacDept, setVacDept] = useState('');   // '' = todos los departamentos
   const [vacStart, setVacStart] = useState('');
   const [vacEnd, setVacEnd] = useState('');
   const [vacNote, setVacNote] = useState('');
@@ -70,7 +72,10 @@ export default function Permissions() {
 
   // Selector de empleados para vacaciones (checkboxes + buscador)
   const vacActiveEmps = emps.filter(e => !e.archived);
-  const vacFiltered = vacActiveEmps.filter(e => (e.name || '').toLowerCase().includes(vacSearch.toLowerCase()));
+  const vacDepts = DEPARTMENTS.filter(d => vacActiveEmps.some(e => e.dept === d));
+  const vacFiltered = vacActiveEmps.filter(e =>
+    (!vacDept || e.dept === vacDept) &&
+    (e.name || '').toLowerCase().includes(vacSearch.toLowerCase()));
   const toggleVac = (id) => setVacEmps(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const allFilteredSelected = vacFiltered.length > 0 && vacFiltered.every(e => vacEmps.includes(e.id));
   const toggleAllFiltered = () => setVacEmps(prev =>
@@ -114,9 +119,16 @@ export default function Permissions() {
         <div className="fg">
           <label>Empleados {vacEmps.length > 0 && <span style={{ color: 'var(--accent)' }}>· {vacEmps.length} seleccionados</span>}</label>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+            <select value={vacDept} onChange={e => setVacDept(e.target.value)}
+              style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 13, outline: 'none' }}>
+              <option value="">Todos los departamentos</option>
+              {vacDepts.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
             <input type="text" value={vacSearch} onChange={e => setVacSearch(e.target.value)} placeholder="Buscar empleado..." autoComplete="off"
               style={{ flex: 1, minWidth: 160, background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 13, outline: 'none' }} />
-            <button className="btn-sm" onClick={toggleAllFiltered}>{allFilteredSelected ? 'Quitar todos' : 'Seleccionar todos'}</button>
+            <button className="btn-sm" onClick={toggleAllFiltered}>
+              {allFilteredSelected ? 'Quitar' : 'Seleccionar'}{vacDept ? ` ${vacDept}` : ' todos'}
+            </button>
             {vacEmps.length > 0 && <button className="btn-sm" onClick={() => setVacEmps([])}>Limpiar</button>}
           </div>
           <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border2)', borderRadius: 10, background: 'var(--bg3)' }}>

@@ -37,3 +37,22 @@ export const ABS_MAP = {
   festivo: '🎉 Festivo',
   permiso: '📋 Permiso',
 };
+
+// Orden de empleados dentro de un departamento: primero los colocados a mano
+// (sort_order), y quien no tenga orden manual al final, alfabético. Lo usan la
+// pestaña Empleados y los resúmenes por departamento para no discrepar.
+const _UNSET = 1e6;
+export function sortByOrder(list) {
+  return [...list].sort((a, b) =>
+    ((a.sortOrder ?? _UNSET) - (b.sortOrder ?? _UNSET)) ||
+    (a.name || '').localeCompare(b.name || '', 'es'));
+}
+
+// Mueve un elemento de un array de una posición a otra. Devuelve un array nuevo.
+export function moveItem(arr, from, to) {
+  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
+  const next = [...arr];
+  const [it] = next.splice(from, 1);
+  next.splice(to, 0, it);
+  return next;
+}

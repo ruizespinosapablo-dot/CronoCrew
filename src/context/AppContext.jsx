@@ -46,6 +46,7 @@ const mapEmp = row => ({
   setupComplete: row.setup_complete ?? false,
   isReinforcement: row.is_reinforcement ?? false,
   archived: row.archived ?? false,
+  sortOrder: row.sort_order ?? null,
 });
 
 const mapRec = row => ({
@@ -111,6 +112,7 @@ const toEmpRow = e => ({
   start_time: e.start, end_time: e.end, brk: e.brk, ch: e.ch,
   c_start: e.cStart || null, c_end: e.cEnd || null,
   setup_complete: e.setupComplete ?? false,
+  sort_order: e.sortOrder ?? null,
 });
 
 const toReqRow = r => ({
@@ -474,6 +476,19 @@ export function AppProvider({ children }) {
     sb(supabase.from('emps').insert({ ...toEmpRow(emp), ...(prodId ? { production_id: prodId } : {}) }));
   }, []);
 
+  // Orden manual de empleados. Se guarda la lista reindexada (0,1,2…) en vez de
+  // mover una sola fila: son unas pocas filas y evita empates entre posiciones.
+  // Solo se toca la columna sort_order, no la ficha entera, para no pisar una
+  // edición simultánea de otros campos.
+  const saveEmpOrder = useCallback((orderedIds) => {
+    setEmps(prev => {
+      const pos = Object.fromEntries(orderedIds.map((id, i) => [id, i]));
+      return prev.map(e => e.id in pos ? { ...e, sortOrder: pos[e.id] } : e);
+    });
+    orderedIds.forEach((id, i) =>
+      sb(supabase.from('emps').update({ sort_order: i }).eq('id', id)));
+  }, []);
+
   const upsertPaid = useCallback((entry) => {
     const prodId = currentUserRef.current?.productionId;
     setPaid(prev => {
@@ -694,7 +709,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       currentUser, login, logout, switchProduction, exitProduction,
       needsPasswordReset, setNeedsPasswordReset,
-      emps, updateEmp, addEmp,
+      emps, updateEmp, addEmp, saveEmpOrder,
       recs, updateRec, addRec, upsertRec, deleteRec,
       paid, upsertPaid, removePaid, addPaid, deletePaidById,
       adminPerms, addAdminPerm, removeAdminPerm,
