@@ -10,7 +10,7 @@ export default function History({ emp }) {
 
   const isActor = emp.dept === 'Actores';
   const dates = weekDates(weekOffset);
-  let weekNet = 0, weekSaldo = 0;
+  let weekNet = 0, weekSaldo = 0, weekCited = 0;
 
   // Nombre del festivo para una fecha (o null si no lo es)
   const festivoName = (ds) => {
@@ -137,7 +137,7 @@ export default function History({ emp }) {
         ) : (
           <table>
             <thead>
-              <tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Descanso</th><th>Netas</th><th>Saldo</th><th>Estado</th><th>Obs.</th><th></th></tr>
+              <tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Descanso</th><th>Netas</th><th>Citadas</th><th>Saldo</th><th>Estado</th><th>Obs.</th><th></th></tr>
             </thead>
             <tbody>
               {DAY_NAMES.map((d, i) => {
@@ -151,6 +151,7 @@ export default function History({ emp }) {
                 const dayPaidDeduction = dayPaidExtMin * 1.5 + dayPaidOrdMin;
                 if (c?.net) weekNet += c.net;
                 if (c?.total) weekSaldo += c.total;
+                if (c?.citedNet) weekCited += c.citedNet;
                 if (dayPaidDeduction > 0) weekSaldo -= dayPaidDeduction;
 
                 const fest = festivoName(ds);
@@ -159,7 +160,7 @@ export default function History({ emp }) {
                     return (
                       <tr key={ds}>
                         <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>{isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}</td>
-                        <td colSpan={7} style={{ textAlign: 'center', color: 'var(--amber)', fontWeight: 600 }}>🎉 Festivo · {fest}</td>
+                        <td colSpan={8} style={{ textAlign: 'center', color: 'var(--amber)', fontWeight: 600 }}>🎉 Festivo · {fest}</td>
                         <td>{<button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
                       </tr>
                     );
@@ -167,7 +168,7 @@ export default function History({ emp }) {
                   return (
                     <tr key={ds} style={isW ? { opacity: .35 } : {}}>
                       <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b>{isT && <span className="b by" style={{ fontSize: 10, marginLeft: 4 }}>Hoy</span>}</td>
-                      <td colSpan={isW ? 8 : 7} style={{ color: 'var(--text3)' }}>{isW ? '—' : 'Sin fichaje'}</td>
+                      <td colSpan={isW ? 9 : 8} style={{ color: 'var(--text3)' }}>{isW ? '—' : 'Sin fichaje'}</td>
                       {!isW && <td>{<button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>}
                     </tr>
                   );
@@ -176,7 +177,7 @@ export default function History({ emp }) {
                   return (
                     <tr key={ds} style={{ opacity: .7 }}>
                       <td><b>{d} {parseInt(ds.split('-')[2])} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>{MONTHS[parseInt(ds.split('-')[1]) - 1]}</span></b></td>
-                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text2)', fontStyle: 'italic' }}>{ABS_MAP[rec.absence] || rec.absence}</td>
+                      <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text2)', fontStyle: 'italic' }}>{ABS_MAP[rec.absence] || rec.absence}</td>
                       <td><span className="b bg">Aprobado</span></td>
                       <td></td>
                     </tr>
@@ -217,6 +218,7 @@ export default function History({ emp }) {
                     <td style={{ fontFamily: 'monospace' }}>{lib ? '—' : (rec.exit || '—')}</td>
                     <td style={{ fontSize: 12, color: 'var(--text2)' }}>{rec.exit ? fmt(realBrk) : '—'}</td>
                     <td style={{ fontWeight: 700 }}>{lib ? '📅 Libranza' : (rec.exit ? fmt(c.net) : '—')}</td>
+                    <td style={{ color: 'var(--text2)' }}>{lib ? '—' : (rec.exit ? fmt(c.citedNet) : '—')}</td>
                     <td>{saldoEl}</td>
                     <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : rec.status === 'draft' ? <span className="b" style={{ background: 'var(--bg4)', color: 'var(--text2)' }}>📝 Borrador</span> : <span className="b by">Pendiente</span>}</td>
                     <td style={{ color: 'var(--text2)', fontSize: 12 }}>{rec.obs || '—'}</td>
@@ -229,6 +231,7 @@ export default function History({ emp }) {
               <tr>
                 <td colSpan={4} style={{ color: 'var(--text3)' }}>Total semana</td>
                 <td style={{ color: 'var(--teal)', fontWeight: 700 }}>{weekNet ? fmt(weekNet) : '—'}</td>
+                <td style={{ color: 'var(--text2)', fontWeight: 700 }}>{weekCited ? fmt(weekCited) : '—'}</td>
                 <td style={{ color: 'var(--teal)', fontWeight: 700 }}>{weekSaldo ? `${weekSaldo >= 0 ? '+' : ''}${fmt(Math.round(weekSaldo))}` : '—'}</td>
                 <td colSpan={3}></td>
               </tr>

@@ -24,10 +24,18 @@ export function calcRec(rec, emp) {
     return { net: 0, accum: 0, comp: 0, extra: 0, total: 0, citedNet: 0 };
   }
   const ci = rec.citedIn || emp.start, co = rec.citedOut || emp.end;
+  // Dos descansos distintos, y es crucial no confundirlos:
+  //   realBrk  = el que la persona disfrutó de verdad (lo que fichó).
+  //   citedBrk = el planificado en la citación. Si falta, se asume el de
+  //              contrato (emp.brk).
+  // La jornada CITADA se calcula con el descanso planificado; la TRABAJADA, con
+  // el real. Así, descansar menos de lo previsto hace que el trabajo sobrepase
+  // la jornada citada y ese exceso cuente como EXTRA (1,5×), no como acumulado.
   const realBrk = rec.brk != null ? rec.brk : emp.brk;
+  const citedBrk = rec.citedBrk != null ? rec.citedBrk : emp.brk;
   let citedOutMin = t2m(co), citedInMin = t2m(ci);
   if (citedOutMin < citedInMin) citedOutMin += 24 * 60;
-  const citedNet = (citedOutMin - citedInMin) - realBrk;
+  const citedNet = (citedOutMin - citedInMin) - citedBrk;
   // Ausencia parcial justificada (médico, etc.): se descuenta de la jornada
   // ESPERADA, no de la trabajada, así no penaliza el saldo (permiso retribuido).
   const permMin = rec.permMin || 0;

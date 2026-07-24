@@ -55,6 +55,7 @@ const mapRec = row => ({
   brk: row.brk ?? 0, obs: row.obs || '', status: row.status,
   method: row.method || null,
   citedIn: row.cited_in || '', citedOut: row.cited_out || '',
+  citedBrk: row.cited_brk ?? null,   // descanso planificado (null = usar el de contrato)
   absence: row.absence || null, libranza: row.libranza || false,
   special: row.special || false, paidExtra: row.paid_extra || 0,
   specialNote: row.special_note || null,
@@ -93,6 +94,7 @@ const toRecRow = r => ({
   brk: r.brk ?? 0, obs: r.obs || null,
   status: r.status || 'approved', method: r.method || null,
   cited_in: r.citedIn || null, cited_out: r.citedOut || null,
+  cited_brk: r.citedBrk ?? null,
   absence: r.absence || null, libranza: r.libranza || false,
   special: r.special || false, paid_extra: r.paidExtra || 0,
   special_note: r.specialNote || null,

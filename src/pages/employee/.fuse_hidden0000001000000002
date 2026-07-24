@@ -88,12 +88,7 @@ export default function Clock({ emp }) {
     if (plan.cited_out) setCitedOut(plan.cited_out);
     if (plan.brk != null) setBrkMins(plan.brk);
   }, [plan, rec]);
-  // Descanso PLANIFICADO del día: el de la citación de ClapCrew si existe, o el
-  // de contrato. Se congela en el registro (cited_brk) para que, aunque el
-  // empleado cambie luego su descanso real, la jornada citada no se mueva.
-  const citedBrk = (plan && plan.kind !== 'libranza' && plan.brk != null) ? plan.brk : emp.brk;
-
-  const calc = rec?.exit ? calcRec({ ...rec, citedIn, citedOut, citedBrk, brk: parseInt(brkMins) || emp.brk }, emp) : null;
+  const calc = rec?.exit ? calcRec({ ...rec, citedIn, citedOut, brk: parseInt(brkMins) || emp.brk }, emp) : null;
 
   // Mientras el día es 'draft' el empleado edita libremente. Al confirmar pasa a
   // 'pending' (lo ve el admin) y se bloquea la edición en Fichar.
@@ -115,7 +110,7 @@ export default function Clock({ emp }) {
     if (!rec) { showToast('Debes fichar primero.', 'warning'); return; }
     upsertRec({
       ...rec,
-      citedIn, citedOut, citedBrk,
+      citedIn, citedOut,
       brk: parseInt(brkMins) || emp.brk,
       ...(isLongCited ? { special: true } : {}),
     });
@@ -140,6 +135,11 @@ export default function Clock({ emp }) {
     }
     return days.slice(-90);
   }, [emp.cStart, emp.cEnd, emp.id, recs, TODAY, festivoSet]);
+
+  // Descanso PLANIFICADO del día: el de la citación de ClapCrew si existe, o el
+  // de contrato. Se congela en el registro (cited_brk) para que, aunque el
+  // empleado cambie luego su descanso real, la jornada citada no se mueva.
+  const citedBrk = (plan && plan.kind !== 'libranza' && plan.brk != null) ? plan.brk : emp.brk;
 
   const nowHHMM = () => {
     const n = new Date();
@@ -169,7 +169,7 @@ export default function Clock({ emp }) {
         entry: t, exit: existing?.exit || '',
         brk: parseInt(brkMins) || emp.brk,
         obs: existing?.obs || '', status: 'draft',
-        method: methodLabel, citedIn, citedOut, citedBrk,
+        method: methodLabel, citedIn, citedOut,
       });
     } else {
       if (!existing) { showToast('Debes fichar la entrada antes de registrar la salida.', 'warning'); return; }
@@ -183,7 +183,7 @@ export default function Clock({ emp }) {
       eid: emp.id, date: TODAY,
       entry: '', exit: '', brk: emp.brk,
       obs: 'Libranza', status: 'pending',
-      method: 'Libranza', citedIn, citedOut, citedBrk, libranza: true,
+      method: 'Libranza', citedIn, citedOut, libranza: true,
     });
   };
 
@@ -193,7 +193,7 @@ export default function Clock({ emp }) {
       eid: emp.id, date: TODAY,
       entry: '', exit: '', brk: 0,
       obs: todayFestivo?.name || 'Festivo', status: 'pending',
-      method: 'Sistema', citedIn, citedOut, citedBrk, absence: 'festivo',
+      method: 'Sistema', citedIn, citedOut, absence: 'festivo',
     });
   };
 
@@ -203,7 +203,7 @@ export default function Clock({ emp }) {
     if (!h || h <= 0) { showToast('Indica las horas de la ausencia.', 'warning'); return; }
     const base = recs.find(r => r.eid === emp.id && r.date === TODAY) || {
       id: crypto.randomUUID(), eid: emp.id, date: TODAY, entry: '', exit: '',
-      brk: emp.brk, obs: '', status: 'draft', method: '—', citedIn, citedOut, citedBrk,
+      brk: emp.brk, obs: '', status: 'draft', method: '—', citedIn, citedOut,
     };
     upsertRec({ ...base, permMin: Math.round(h * 60), permReason });
     setPermH('');
@@ -214,7 +214,7 @@ export default function Clock({ emp }) {
     if (locked) { showToast(LOCK_MSG, 'warning'); return; }
     const base = recs.find(r => r.eid === emp.id && r.date === TODAY) || {
       id: crypto.randomUUID(), eid: emp.id, date: TODAY, entry: '', exit: '',
-      brk: emp.brk, obs: '', status: 'draft', method: '—', citedIn, citedOut, citedBrk,
+      brk: emp.brk, obs: '', status: 'draft', method: '—', citedIn, citedOut,
     };
     const cnt = parseFloat(kmCount);
     upsertRec({ ...base, kmApplied: on, kmCount: on && cnt > 0 ? cnt : null });
@@ -238,7 +238,7 @@ export default function Clock({ emp }) {
     const mins = Number.isFinite(b) && b >= 0 ? b : emp.brk;
     const base = recs.find(r => r.eid === emp.id && r.date === TODAY) || {
       id: crypto.randomUUID(), eid: emp.id, date: TODAY, entry: '', exit: '',
-      obs: '', status: 'draft', method: '—', citedIn, citedOut, citedBrk,
+      obs: '', status: 'draft', method: '—', citedIn, citedOut,
     };
     upsertRec({ ...base, brk: mins });
     showToast(`Descanso del día: ${mins} min`, 'success');
@@ -253,7 +253,7 @@ export default function Clock({ emp }) {
       eid: emp.id, date: TODAY,
       entry: existing?.entry || '', exit: existing?.exit || '',
       brk: emp.brk, obs: obs.trim(), status: 'draft',
-      method: '—', citedIn, citedOut, citedBrk,
+      method: '—', citedIn, citedOut,
     });
     setObs('');
     showToast('Observación guardada.', 'success');
