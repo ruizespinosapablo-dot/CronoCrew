@@ -224,6 +224,21 @@ export default function Clock({ emp }) {
     showToast('✓ Fichaje confirmado y enviado a administración.', 'success');
   };
 
+  // El descanso es del día real (a veces no se cumplen los 60 min), no de la
+  // citación. Se guarda directamente en el fichaje de hoy; si aún no hay
+  // fichaje, se deja anotado en un borrador para que cuente al fichar.
+  const saveBrk = () => {
+    if (locked) { showToast(LOCK_MSG, 'warning'); return; }
+    const b = parseInt(brkMins);
+    const mins = Number.isFinite(b) && b >= 0 ? b : emp.brk;
+    const base = recs.find(r => r.eid === emp.id && r.date === TODAY) || {
+      id: crypto.randomUUID(), eid: emp.id, date: TODAY, entry: '', exit: '',
+      obs: '', status: 'draft', method: '—', citedIn, citedOut,
+    };
+    upsertRec({ ...base, brk: mins });
+    showToast(`Descanso del día: ${mins} min`, 'success');
+  };
+
   const saveObs = () => {
     if (locked) { showToast(LOCK_MSG, 'warning'); return; }
     if (!obs.trim()) { showToast('Escribe una observación antes de guardar.', 'warning'); return; }
@@ -385,7 +400,6 @@ export default function Clock({ emp }) {
             <div className="fichar-ajuste">
               <label>Entrada <input type="time" className="tinput" value={citedIn} onChange={e => setCitedIn(e.target.value)} /></label>
               <label>Salida <input type="time" className="tinput" value={citedOut} onChange={e => setCitedOut(e.target.value)} /></label>
-              <label>Descanso <input type="number" min={0} step={5} value={brkMins} onChange={e => setBrkMins(e.target.value)} style={{ width: 64 }} /> min</label>
               <button className="btn-sm" onClick={applyCited}>Aplicar</button>
             </div>
           )}
@@ -417,9 +431,18 @@ export default function Clock({ emp }) {
           </div>
 
           <div className="fichar-secundario">
+            <div className="fichar-desc">
+              <span className="fx-lbl" style={{ margin: 0 }}>Descanso real</span>
+              <input type="number" min={0} step={5} value={brkMins}
+                onChange={e => setBrkMins(e.target.value)} className="fx-num" />
+              <span className="fichar-hint">min</span>
+              <button className="btn-sm" onClick={saveBrk}>Aplicar</button>
+            </div>
             <button className="btn-libranza" onClick={doLibranza}>📅 Hoy libro</button>
-            <span className="fichar-hint">La libranza compensa {emp.ch}h de contrato.</span>
           </div>
+          <p className="fichar-hint" style={{ marginBottom: '.85rem' }}>
+            Cambia el descanso si hoy no has disfrutado tus {emp.brk} min habituales. La libranza compensa {emp.ch}h de contrato.
+          </p>
 
           {/* Lo que casi nunca se usa, plegado */}
           <details className="fichar-extra">

@@ -370,3 +370,7 @@ tr.drop-after td{box-shadow:inset 0 -2px 0 var(--accent);}
 .fx-obs{flex:1;min-width:180px;}
 .fx-chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;}
 .fx-chk input{width:16px;height:16px;cursor:pointer;}
+
+/* descanso siempre visible en el panel de fichar */
+.fichar-desc{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:7px 12px;}
+.fichar-desc .fx-num{width:64px;color:var(--amber);font-weight:600;}
