@@ -83,6 +83,27 @@ export default function Records() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Pendientes en TODO el conjunto filtrado (no solo la página visible): así,
+  // filtrando por departamento se puede aprobar el departamento entero de una vez.
+  const pendientes = filtered.filter(r => r.status === 'pending');
+
+  const aprobarFiltrados = () => {
+    if (!pendientes.length) return;
+    const alcance = [
+      filterDept && `departamento ${filterDept}`,
+      filterEmp && `empleado ${emps.find(e => e.id === filterEmp)?.name || ''}`,
+      filterDateFrom && `desde ${fmtDate(filterDateFrom)}`,
+      filterDateTo && `hasta ${fmtDate(filterDateTo)}`,
+    ].filter(Boolean).join(', ');
+    const ok = window.confirm(
+      `Se van a APROBAR ${pendientes.length} ${pendientes.length === 1 ? 'jornada pendiente' : 'jornadas pendientes'}` +
+      `${alcance ? ` (${alcance})` : ' de todo el registro'}.\n\n` +
+      'Aprobar deja las jornadas listas para nómina. ¿Continuar?'
+    );
+    if (!ok) return;
+    pendientes.forEach(r => updateRec(r.id, { status: 'approved' }, 'Aprobación por lote'));
+  };
+
   return (
     <>
       <div className="ph">
@@ -136,9 +157,17 @@ export default function Records() {
       <div className="tc">
         <div className="tch">
           <h3>Jornadas registradas</h3>
-          <span style={{ fontSize: 12, color: 'var(--text3)' }}>
-            {filtered.length} registros · página {page}/{totalPages}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {pendientes.length > 0 && (
+              <button className="btn-accent" style={{ padding: '5px 12px', fontSize: 12 }}
+                onClick={aprobarFiltrados}>
+                <i className="ti ti-checks" /> Aprobar {pendientes.length} pendiente{pendientes.length === 1 ? '' : 's'}
+              </button>
+            )}
+            <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+              {filtered.length} registros · página {page}/{totalPages}
+            </span>
+          </div>
         </div>
         <table>
           <thead>
