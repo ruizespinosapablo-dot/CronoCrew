@@ -45,47 +45,45 @@ export default function TeamReview({ emp }) {
       .sort((a, b) => (b.start || '').localeCompare(a.start || '')),
     [empRequests, miEquipo]);
 
-  // Horas de la COLA de revisión (lo que el jefe tiene por delante ahora).
-  const cola = useMemo(() => {
-    let citadas = 0, netas = 0;
-    recsPend.forEach(r => {
-      if (r.libranza) return;
-      const e = emps.find(x => x.id === r.eid);
-      const c = r.exit ? calcRecForEmp(r, e) : null;
-      if (c) { citadas += c.citedNet || 0; netas += c.net || 0; }
-    });
-    return { citadas, netas };
-  }, [recsPend, emps]);
-
-  // ── Cómo va cada persona en el mes elegido ──
-  const [mes, setMes] = useState(getToday().slice(0, 7));
+  // ── Cómo va cada persona ── periodo '' = TODO (toda la contratación).
+  const [periodo, setPeriodo] = useState(getToday().slice(0, 7));
 
   const porPersona = useMemo(() => {
     const acc = {};
-    [...miEquipo].forEach(id => { acc[id] = { dias: 0, netas: 0, citadas: 0, saldo: 0, especiales: 0, libranzas: 0 }; });
+    [...miEquipo].forEach(id => { acc[id] = { saldo: 0, especiales: 0, libranzas: 0 }; });
     recs.forEach(r => {
       if (!miEquipo.has(r.eid) || r.status === 'draft' || r.absence) return;
-      if (!(r.date || '').startsWith(mes)) return;
+      if (periodo && !(r.date || '').startsWith(periodo)) return;
       const a = acc[r.eid]; if (!a) return;
       const e = emps.find(x => x.id === r.eid);
       if (r.libranza) { a.libranzas++; a.saldo += calcRecForEmp(r, e).total || 0; return; }
       if (r.exit) {
         const c = calcRecForEmp(r, e);
-        a.dias++; a.netas += c.net || 0; a.citadas += c.citedNet || 0; a.saldo += c.total || 0;
+        a.saldo += c.total || 0;
         if ((c.net || 0) > 555) a.especiales++;   // más de 9h15 de trabajo neto
       }
     });
     return acc;
-  }, [recs, miEquipo, emps, mes]);
+  }, [recs, miEquipo, emps, periodo]);
 
-  const totMes = useMemo(() => {
-    const t = { dias: 0, netas: 0, citadas: 0, saldo: 0, especiales: 0, libranzas: 0 };
+  const totPeriodo = useMemo(() => {
+    const t = { saldo: 0, especiales: 0, libranzas: 0 };
     Object.values(porPersona).forEach(a => {
-      t.dias += a.dias; t.netas += a.netas; t.citadas += a.citadas;
       t.saldo += a.saldo; t.especiales += a.especiales; t.libranzas += a.libranzas;
     });
     return t;
   }, [porPersona]);
+
+  // Saldo del equipo en TODA su contratación (siempre, sin filtro de mes).
+  const saldoEquipoTotal = useMemo(() => {
+    let s = 0;
+    recs.forEach(r => {
+      if (!miEquipo.has(r.eid) || r.status === 'draft' || r.absence) return;
+      if (!r.libranza && !r.exit) return;
+      s += calcRecForEmp(r, emps.find(x => x.id === r.eid)).total || 0;
+    });
+    return s;
+  }, [recs, miEquipo, emps]);
 
   const equipoOrdenado = useMemo(
     () => emps.filter(e => e.dept === dept && !e.archived)
@@ -138,13 +136,6 @@ export default function TeamReview({ emp }) {
         </div>
       </div>
 
-      {/* ── Cola de revisión ── */}
-      <div className="sg" style={{ marginBottom: '1.5rem' }}>
-        <div className="sc"><div className="sc-label">Fichajes por revisar</div><div className="sc-val" style={{ color: recsPend.length ? 'var(--amber)' : 'var(--text2)' }}>{recsPend.length}</div></div>
-        <div className="sc"><div className="sc-label">Horas citadas por revisar</div><div className="sc-val cy">{fmt(cola.citadas)}</div></div>
-        <div className="sc"><div className="sc-label">Horas netas por revisar</div><div className="sc-val ct">{fmt(cola.netas)}</div></div>
-        <div className="sc"><div className="sc-label">Permisos pendientes</div><div className="sc-val" style={{ color: (reqsPend.length + reqsRev.length) ? 'var(--purple)' : 'var(--text2)' }}>{reqsPend.length + reqsRev.length}</div></div>
-      </div>
 
       {/* ── Fichajes por revisar ── */}
       <div className="tc" style={{ marginBottom: '1.5rem' }}>
@@ -222,51 +213,52 @@ export default function TeamReview({ emp }) {
         </table>
       </div>
 
-      {/* ── Cómo va el equipo este mes ── */}
+      {/* ── Cómo va el equipo ── */}
       <div className="tc" style={{ marginTop: '1.5rem' }}>
         <div className="tch" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3>Cómo va el equipo · {etiquetaMes(mes)}</h3>
-          <select value={mes} onChange={e => setMes(e.target.value)}
+          <h3>Cómo va el equipo · {periodo ? etiquetaMes(periodo) : 'toda la contratación'}</h3>
+          <select value={periodo} onChange={e => setPeriodo(e.target.value)}
             style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, padding: '6px 10px', color: 'var(--text)', fontSize: 13, outline: 'none' }}>
+            <option value="">Todo · desde el inicio de contrato</option>
             {mesesRecientes().map(m => <option key={m} value={m}>{etiquetaMes(m)}</option>)}
           </select>
         </div>
         <table>
           <thead>
-            <tr><th>Persona</th><th>Días</th><th>Netas</th><th>Citadas</th><th>Saldo</th><th>Especiales</th><th>Libranzas</th></tr>
+            <tr><th>Persona</th><th>Saldo</th><th>Jornadas especiales</th><th>Libranzas</th></tr>
           </thead>
           <tbody>
             {equipoOrdenado.map(e => {
-              const a = porPersona[e.id] || { dias: 0, netas: 0, citadas: 0, saldo: 0, especiales: 0, libranzas: 0 };
-              const vacio = !a.dias && !a.libranzas;
+              const a = porPersona[e.id] || { saldo: 0, especiales: 0, libranzas: 0 };
+              const vacio = !a.saldo && !a.especiales && !a.libranzas;
               return (
                 <tr key={e.id} style={vacio ? { opacity: .5 } : undefined}>
                   <td style={{ fontSize: 13 }}>{e.name}</td>
-                  <td>{a.dias || '—'}</td>
-                  <td style={{ fontWeight: 600 }}>{a.netas ? fmt(a.netas) : '—'}</td>
-                  <td style={{ color: 'var(--text2)' }}>{a.citadas ? fmt(a.citadas) : '—'}</td>
-                  <td style={{ color: a.saldo > 0 ? 'var(--coral)' : 'var(--teal)' }}>{a.saldo ? `${a.saldo >= 0 ? '+' : ''}${fmt(Math.round(a.saldo))}` : '—'}</td>
+                  <td style={{ color: a.saldo > 0 ? 'var(--coral)' : 'var(--teal)', fontWeight: 600 }}>{a.saldo ? `${a.saldo >= 0 ? '+' : ''}${fmt(Math.round(a.saldo))}` : '—'}</td>
                   <td>{a.especiales ? <span className="b ba" style={{ fontSize: 11 }}>⭐ {a.especiales}</span> : '—'}</td>
                   <td>{a.libranzas || '—'}</td>
                 </tr>
               );
             })}
             {!equipoOrdenado.length && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text3)', padding: '1.5rem' }}>No hay nadie en tu departamento.</td></tr>
+              <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text3)', padding: '1.5rem' }}>No hay nadie en tu departamento.</td></tr>
             )}
           </tbody>
           <tfoot>
             <tr>
-              <td style={{ color: 'var(--text3)' }}>Total {dept}</td>
-              <td style={{ fontWeight: 700 }}>{totMes.dias || '—'}</td>
-              <td style={{ color: 'var(--teal)', fontWeight: 700 }}>{totMes.netas ? fmt(totMes.netas) : '—'}</td>
-              <td style={{ color: 'var(--text)', fontWeight: 700 }}>{totMes.citadas ? fmt(totMes.citadas) : '—'}</td>
-              <td style={{ color: totMes.saldo > 0 ? 'var(--coral)' : 'var(--teal)', fontWeight: 700 }}>{totMes.saldo ? `${totMes.saldo >= 0 ? '+' : ''}${fmt(Math.round(totMes.saldo))}` : '—'}</td>
-              <td style={{ fontWeight: 700 }}>{totMes.especiales || '—'}</td>
-              <td style={{ fontWeight: 700 }}>{totMes.libranzas || '—'}</td>
+              <td style={{ color: 'var(--text3)' }}>Total {dept} · {periodo ? etiquetaMes(periodo) : 'todo'}</td>
+              <td style={{ color: totPeriodo.saldo > 0 ? 'var(--coral)' : 'var(--teal)', fontWeight: 700 }}>{totPeriodo.saldo ? `${totPeriodo.saldo >= 0 ? '+' : ''}${fmt(Math.round(totPeriodo.saldo))}` : '—'}</td>
+              <td style={{ fontWeight: 700 }}>{totPeriodo.especiales || '—'}</td>
+              <td style={{ fontWeight: 700 }}>{totPeriodo.libranzas || '—'}</td>
             </tr>
           </tfoot>
         </table>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.9rem 1.2rem', borderTop: '1px solid var(--border2)', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--text2)' }}>Saldo del equipo desde el inicio de contrato</span>
+          <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: saldoEquipoTotal > 0 ? 'var(--coral)' : 'var(--teal)' }}>
+            {saldoEquipoTotal >= 0 ? '+' : ''}{fmt(Math.round(saldoEquipoTotal))}
+          </span>
+        </div>
       </div>
     </>
   );
