@@ -312,6 +312,7 @@ export function AppProvider({ children }) {
             : profile?.role === 'admin' ? 'admin'
             : profile?.role === 'dept_head' ? 'dept_head' : 'user',
         eid: profile?.eid || null,
+        managedDept: profile?.managed_dept || null,   // depto que dirige un jefe de equipo
         productionId: profile?.production_id || null,
         companyId: profile?.company_id || null,
       };

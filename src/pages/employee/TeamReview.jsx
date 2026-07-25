@@ -19,9 +19,11 @@ const etiquetaMes = (m) => { const [y, mo] = m.split('-'); return `${MESES[+mo -
 // fichajes y permisos de SU departamento. La firma final, y todo lo de dinero,
 // es del admin: la base de datos lo impide aunque se intente por la API.
 export default function TeamReview({ emp }) {
-  const { emps, recs, empRequests, updateRec, updateEmpRequest } = useApp();
+  const { emps, recs, empRequests, updateRec, updateEmpRequest, currentUser } = useApp();
 
-  const dept = emp.dept;
+  // El departamento que DIRIGE (puede no ser el de su ficha si el admin lo
+  // asignó a otro). Si no tiene asignación explícita, el de su ficha.
+  const dept = currentUser?.managedDept || emp.dept;
   const miEquipo = useMemo(
     () => new Set(emps.filter(e => e.dept === dept && !e.archived).map(e => e.id)),
     [emps, dept]);
