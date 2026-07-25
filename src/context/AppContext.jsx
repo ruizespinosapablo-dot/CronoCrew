@@ -419,7 +419,11 @@ export function AppProvider({ children }) {
       const updated = prev.map(r => r.id === id ? { ...r, ...changes } : r);
       const rec = updated.find(r => r.id === id);
       if (rec) {
-        sb(supabase.from('recs').upsert(toRecRow(rec), { onConflict: 'id' }));
+        // UPDATE, no upsert: un upsert hace por debajo un INSERT ... ON CONFLICT,
+        // y eso exige permiso de INSERT. El jefe de equipo NO puede insertar
+        // (solo revisar), así que un upsert le rompía con error de RLS. Como
+        // updateRec siempre opera sobre un registro que ya existe, .update basta.
+        sb(supabase.from('recs').update(toRecRow(rec)).eq('id', id));
         logAudit(id, 'update', original ? toRecRow(original) : null, toRecRow(rec), reason);
       }
       return updated;

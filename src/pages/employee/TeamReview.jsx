@@ -1,6 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { calcRecForEmp, fmt, fmtDate } from '../../lib/utils';
+import { calcRecForEmp, fmt, fmtDate, getToday } from '../../lib/utils';
+
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+// Últimos 12 meses como opciones 'YYYY-MM'.
+const mesesRecientes = () => {
+  const out = [];
+  const d = new Date();
+  for (let i = 0; i < 12; i++) {
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    d.setMonth(d.getMonth() - 1);
+  }
+  return out;
+};
+const etiquetaMes = (m) => { const [y, mo] = m.split('-'); return `${MESES[+mo - 1]} ${y}`; };
 
 // Vista del jefe de equipo. Da el VISTO BUENO (no la aprobación final) a los
 // fichajes y permisos de SU departamento. La firma final, y todo lo de dinero,
@@ -32,32 +45,47 @@ export default function TeamReview({ emp }) {
       .sort((a, b) => (b.start || '').localeCompare(a.start || '')),
     [empRequests, miEquipo]);
 
-  // Acumulados por persona (todo lo confirmado del equipo, sin borradores).
-  // De aquí sale el total de horas CITADAS del departamento.
-  const resumen = useMemo(() => {
+  // Horas de la COLA de revisión (lo que el jefe tiene por delante ahora).
+  const cola = useMemo(() => {
+    let citadas = 0, netas = 0;
+    recsPend.forEach(r => {
+      if (r.libranza) return;
+      const e = emps.find(x => x.id === r.eid);
+      const c = r.exit ? calcRecForEmp(r, e) : null;
+      if (c) { citadas += c.citedNet || 0; netas += c.net || 0; }
+    });
+    return { citadas, netas };
+  }, [recsPend, emps]);
+
+  // ── Cómo va cada persona en el mes elegido ──
+  const [mes, setMes] = useState(getToday().slice(0, 7));
+
+  const porPersona = useMemo(() => {
     const acc = {};
-    [...miEquipo].forEach(id => { acc[id] = { dias: 0, netas: 0, citadas: 0, saldo: 0, libranzas: 0 }; });
+    [...miEquipo].forEach(id => { acc[id] = { dias: 0, netas: 0, citadas: 0, saldo: 0, especiales: 0, libranzas: 0 }; });
     recs.forEach(r => {
       if (!miEquipo.has(r.eid) || r.status === 'draft' || r.absence) return;
+      if (!(r.date || '').startsWith(mes)) return;
+      const a = acc[r.eid]; if (!a) return;
       const e = emps.find(x => x.id === r.eid);
-      const a = acc[r.eid];
-      if (!a) return;
       if (r.libranza) { a.libranzas++; a.saldo += calcRecForEmp(r, e).total || 0; return; }
       if (r.exit) {
         const c = calcRecForEmp(r, e);
         a.dias++; a.netas += c.net || 0; a.citadas += c.citedNet || 0; a.saldo += c.total || 0;
+        if ((c.net || 0) > 555) a.especiales++;   // más de 9h15 de trabajo neto
       }
     });
     return acc;
-  }, [recs, miEquipo, emps]);
+  }, [recs, miEquipo, emps, mes]);
 
-  const totales = useMemo(() => {
-    const t = { citadas: 0, netas: 0, saldo: 0, libranzas: 0 };
-    Object.values(resumen).forEach(a => {
-      t.citadas += a.citadas; t.netas += a.netas; t.saldo += a.saldo; t.libranzas += a.libranzas;
+  const totMes = useMemo(() => {
+    const t = { dias: 0, netas: 0, citadas: 0, saldo: 0, especiales: 0, libranzas: 0 };
+    Object.values(porPersona).forEach(a => {
+      t.dias += a.dias; t.netas += a.netas; t.citadas += a.citadas;
+      t.saldo += a.saldo; t.especiales += a.especiales; t.libranzas += a.libranzas;
     });
     return t;
-  }, [resumen]);
+  }, [porPersona]);
 
   const equipoOrdenado = useMemo(
     () => emps.filter(e => e.dept === dept && !e.archived)
@@ -110,12 +138,12 @@ export default function TeamReview({ emp }) {
         </div>
       </div>
 
-      {/* ── Resumen del departamento ── */}
+      {/* ── Cola de revisión ── */}
       <div className="sg" style={{ marginBottom: '1.5rem' }}>
-        <div className="sc"><div className="sc-label">Por revisar</div><div className="sc-val" style={{ color: recsPend.length ? 'var(--amber)' : 'var(--text2)' }}>{recsPend.length}</div></div>
-        <div className="sc"><div className="sc-label">Horas citadas (equipo)</div><div className="sc-val cy">{fmt(totales.citadas)}</div></div>
-        <div className="sc"><div className="sc-label">Horas netas (equipo)</div><div className="sc-val ct">{fmt(totales.netas)}</div></div>
-        <div className="sc"><div className="sc-label">Libranzas</div><div className="sc-val" style={{ color: 'var(--purple)' }}>{totales.libranzas}</div></div>
+        <div className="sc"><div className="sc-label">Fichajes por revisar</div><div className="sc-val" style={{ color: recsPend.length ? 'var(--amber)' : 'var(--text2)' }}>{recsPend.length}</div></div>
+        <div className="sc"><div className="sc-label">Horas citadas por revisar</div><div className="sc-val cy">{fmt(cola.citadas)}</div></div>
+        <div className="sc"><div className="sc-label">Horas netas por revisar</div><div className="sc-val ct">{fmt(cola.netas)}</div></div>
+        <div className="sc"><div className="sc-label">Permisos pendientes</div><div className="sc-val" style={{ color: (reqsPend.length + reqsRev.length) ? 'var(--purple)' : 'var(--text2)' }}>{reqsPend.length + reqsRev.length}</div></div>
       </div>
 
       {/* ── Fichajes por revisar ── */}
@@ -194,36 +222,48 @@ export default function TeamReview({ emp }) {
         </table>
       </div>
 
-      {/* ── Resumen acumulado por persona ── */}
+      {/* ── Cómo va el equipo este mes ── */}
       <div className="tc" style={{ marginTop: '1.5rem' }}>
-        <div className="tch"><h3>Acumulado del equipo</h3></div>
+        <div className="tch" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>Cómo va el equipo · {etiquetaMes(mes)}</h3>
+          <select value={mes} onChange={e => setMes(e.target.value)}
+            style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, padding: '6px 10px', color: 'var(--text)', fontSize: 13, outline: 'none' }}>
+            {mesesRecientes().map(m => <option key={m} value={m}>{etiquetaMes(m)}</option>)}
+          </select>
+        </div>
         <table>
           <thead>
-            <tr><th>Persona</th><th>Cargo</th><th>Días</th><th>Netas</th><th>Citadas</th><th>Saldo</th><th>Libranzas</th></tr>
+            <tr><th>Persona</th><th>Días</th><th>Netas</th><th>Citadas</th><th>Saldo</th><th>Especiales</th><th>Libranzas</th></tr>
           </thead>
           <tbody>
             {equipoOrdenado.map(e => {
-              const a = resumen[e.id] || { dias: 0, netas: 0, citadas: 0, saldo: 0, libranzas: 0 };
+              const a = porPersona[e.id] || { dias: 0, netas: 0, citadas: 0, saldo: 0, especiales: 0, libranzas: 0 };
+              const vacio = !a.dias && !a.libranzas;
               return (
-                <tr key={e.id}>
+                <tr key={e.id} style={vacio ? { opacity: .5 } : undefined}>
                   <td style={{ fontSize: 13 }}>{e.name}</td>
-                  <td style={{ fontSize: 12, color: 'var(--text2)' }}>{e.role || '—'}</td>
-                  <td>{a.dias}</td>
+                  <td>{a.dias || '—'}</td>
                   <td style={{ fontWeight: 600 }}>{a.netas ? fmt(a.netas) : '—'}</td>
                   <td style={{ color: 'var(--text2)' }}>{a.citadas ? fmt(a.citadas) : '—'}</td>
                   <td style={{ color: a.saldo > 0 ? 'var(--coral)' : 'var(--teal)' }}>{a.saldo ? `${a.saldo >= 0 ? '+' : ''}${fmt(Math.round(a.saldo))}` : '—'}</td>
+                  <td>{a.especiales ? <span className="b ba" style={{ fontSize: 11 }}>⭐ {a.especiales}</span> : '—'}</td>
                   <td>{a.libranzas || '—'}</td>
                 </tr>
               );
             })}
+            {!equipoOrdenado.length && (
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text3)', padding: '1.5rem' }}>No hay nadie en tu departamento.</td></tr>
+            )}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={3} style={{ color: 'var(--text3)' }}>Total {dept}</td>
-              <td style={{ color: 'var(--teal)', fontWeight: 700 }}>{totales.netas ? fmt(totales.netas) : '—'}</td>
-              <td style={{ color: 'var(--text)', fontWeight: 700 }}>{totales.citadas ? fmt(totales.citadas) : '—'}</td>
-              <td style={{ color: 'var(--teal)', fontWeight: 700 }}>{totales.saldo ? `${totales.saldo >= 0 ? '+' : ''}${fmt(Math.round(totales.saldo))}` : '—'}</td>
-              <td style={{ fontWeight: 700 }}>{totales.libranzas || '—'}</td>
+              <td style={{ color: 'var(--text3)' }}>Total {dept}</td>
+              <td style={{ fontWeight: 700 }}>{totMes.dias || '—'}</td>
+              <td style={{ color: 'var(--teal)', fontWeight: 700 }}>{totMes.netas ? fmt(totMes.netas) : '—'}</td>
+              <td style={{ color: 'var(--text)', fontWeight: 700 }}>{totMes.citadas ? fmt(totMes.citadas) : '—'}</td>
+              <td style={{ color: totMes.saldo > 0 ? 'var(--coral)' : 'var(--teal)', fontWeight: 700 }}>{totMes.saldo ? `${totMes.saldo >= 0 ? '+' : ''}${fmt(Math.round(totMes.saldo))}` : '—'}</td>
+              <td style={{ fontWeight: 700 }}>{totMes.especiales || '—'}</td>
+              <td style={{ fontWeight: 700 }}>{totMes.libranzas || '—'}</td>
             </tr>
           </tfoot>
         </table>
