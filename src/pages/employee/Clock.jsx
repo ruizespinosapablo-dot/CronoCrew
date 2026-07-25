@@ -93,6 +93,10 @@ export default function Clock({ emp }) {
   // empleado cambie luego su descanso real, la jornada citada no se mueva.
   const citedBrk = (plan && plan.kind !== 'libranza' && plan.brk != null) ? plan.brk : emp.brk;
 
+  // ¿Hay una citación real de producción hoy? Solo si ClapCrew la ha publicado
+  // y no es una libranza. Si no, lo que se muestra es el horario de contrato.
+  const hayCitacion = !!(plan && plan.kind !== 'libranza');
+
   const calc = rec?.exit ? calcRec({ ...rec, citedIn, citedOut, citedBrk, brk: parseInt(brkMins) || emp.brk }, emp) : null;
 
   // Mientras el día es 'draft' el empleado edita libremente. Al confirmar pasa a
@@ -390,14 +394,24 @@ export default function Clock({ emp }) {
             </div>
           )}
           <div style={{ opacity: locked ? 0.5 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
-          {/* Citación de referencia + ajuste plegable */}
+          {/* Citación de referencia + ajuste plegable.
+              Solo es una CITACIÓN de verdad si producción la ha planificado en
+              ClapCrew; si no, lo que se muestra es el horario de contrato como
+              punto de partida, y hay que decirlo para no confundir. */}
           <div className="fichar-cita">
             <div style={{ minWidth: 0 }}>
-              <span className="fichar-cita-lbl">Tu citación de hoy</span>
+              <span className="fichar-cita-lbl">
+                {hayCitacion ? 'Tu citación de hoy' : 'Horario de contrato'}
+              </span>
               <span className="fichar-cita-val">
                 {citedIn} – {citedOut} · {brkMins} min descanso
                 {isLongCited && <span className="b ba" style={{ fontSize: 11, marginLeft: 8 }}>⭐ Especial</span>}
               </span>
+              {!hayCitacion && (
+                <span className="fichar-hint" style={{ display: 'block', marginTop: 3 }}>
+                  Hoy no tienes citación en el planning. Puedes fichar con tu horario o ajustarlo.
+                </span>
+              )}
             </div>
             <button className="btn-sm" onClick={() => setAjustar(a => !a)}>{ajustar ? 'Cerrar' : 'Ajustar'}</button>
           </div>
