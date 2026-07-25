@@ -21,8 +21,8 @@ export default function Dashboard({ onNavigate }) {
   ];
   const todayRecs = recs.filter(r => r.date === today);
   const present = todayRecs.filter(r => r.entry && !r.absence && r.status !== 'draft').length;
-  const pending = recs.filter(r => r.status === 'pending').length;
-  const pendingRequests = empRequests.filter(r => r.status === 'pending').length;
+  const pending = recs.filter(r => r.status === 'pending' || r.status === 'reviewed').length;
+  const pendingRequests = empRequests.filter(r => r.status === 'pending' || r.status === 'reviewed').length;
 
   const dateStr = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -59,6 +59,7 @@ export default function Dashboard({ onNavigate }) {
               else if (isDraft) badge = <span className="b bx">✍️ Sin confirmar</span>;
               else if (rec.absence) badge = <span className="b bp">{absLabels[rec.absence] || rec.absence}</span>;
               else if (rec.status === 'approved') badge = <span className="b bg">Aprobado</span>;
+              else if (rec.status === 'reviewed') badge = <span className="b bt">✓ Revisado (jefe)</span>;
               else badge = <span className="b by">Pendiente</span>;
               return (
                 <tr key={emp.id}>

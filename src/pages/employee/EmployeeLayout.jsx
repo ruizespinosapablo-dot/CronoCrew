@@ -6,8 +6,9 @@ import ActorClock from './ActorClock';
 import Hours from './Hours';
 import History from './History';
 import Leave from './Leave';
+import TeamReview from './TeamReview';
 
-const PAGES = [
+const BASE_PAGES = [
   { id: 'fich', label: 'Fichar', icon: 'ti-fingerprint' },
   { id: 'hrs',  label: 'Mis horas', icon: 'ti-clock' },
   { id: 'hist', label: 'Historial', icon: 'ti-calendar' },
@@ -18,6 +19,13 @@ export default function EmployeeLayout() {
   const { currentUser, emps, logout } = useApp();
   const emp = emps.find(e => e.id === currentUser.eid);
   const [page, setPage] = useState('fich');
+
+  // El jefe de equipo es un empleado más, con una pestaña extra para aprobar
+  // lo de su departamento.
+  const esJefe = currentUser.role === 'dept_head';
+  const PAGES = esJefe
+    ? [...BASE_PAGES, { id: 'team', label: 'Mi equipo', icon: 'ti-users-group' }]
+    : BASE_PAGES;
 
   // Si el usuario TIENE un EID pero su ficha aún no aparece, normalmente es que
   // los datos todavía no han cargado (p. ej. al abrir una segunda ventana, que
@@ -90,6 +98,7 @@ export default function EmployeeLayout() {
           {page === 'hrs'  && <Hours emp={emp} />}
           {page === 'hist' && <History emp={emp} />}
           {page === 'perm' && <Leave emp={emp} />}
+          {page === 'team' && esJefe && <TeamReview emp={emp} />}
         </div>
       </div>
 

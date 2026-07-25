@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useSuperAdmin } from '../../context/SuperAdminContext';
 import { DEPARTMENTS } from '../../lib/constants';
 
-const ROLES = ['super_admin', 'admin', 'employee'];
-const ROLE_LABEL = { super_admin: 'Super Admin', admin: 'Admin', employee: 'Empleado' };
+const ROLES = ['super_admin', 'admin', 'dept_head', 'employee'];
+const ROLE_LABEL = { super_admin: 'Super Admin', admin: 'Admin', dept_head: 'Jefe de equipo', employee: 'Empleado' };
 
 const EMPTY_EDIT = { name: '', role: 'employee', eid: '', company_id: '', production_id: '' };
 const EMPTY_NEW  = {
@@ -315,10 +315,13 @@ function UserForm({ form, setForm, companies, filteredProds }) {
       <div className="fg">
         <label>Rol</label>
         <select value={form.role} onChange={f('role')}>
-          {['super_admin', 'admin', 'employee'].map(r => (
-            <option key={r} value={r}>{r === 'super_admin' ? 'Super Admin' : r === 'admin' ? 'Admin' : 'Empleado'}</option>
-          ))}
+          {ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
         </select>
+        <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 5 }}>
+          La administración de una producción es una cuenta <b>aparte</b> (rol Admin) con su
+          propio correo. No des rol de Admin a la cuenta de empleado de una persona: crea una
+          cuenta distinta para administrar.
+        </p>
       </div>
       <div className="fg">
         <label>Productora</label>

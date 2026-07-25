@@ -6,7 +6,8 @@ const TYPE_CLASS = { 'Vacaciones': 'bp', 'Enfermedad': 'bc', 'Asunto personal': 
 export default function Requests() {
   const { empRequests, updateEmpRequest } = useApp();
 
-  const pending = empRequests.filter(r => r.status === 'pending').length;
+  // Cuenta lo que espera decisión del admin: pendientes + recomendadas por el jefe.
+  const pending = empRequests.filter(r => r.status === 'pending' || r.status === 'reviewed').length;
 
   return (
     <>
@@ -34,8 +35,9 @@ export default function Requests() {
                 <td>{req.days}</td>
                 <td style={{ color: 'var(--text2)', fontSize: 12 }}>{req.reason || '—'}</td>
                 <td>
-                  {req.status === 'pending' ? (
-                    <div style={{ display: 'flex', gap: 6 }}>
+                  {(req.status === 'pending' || req.status === 'reviewed') ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {req.status === 'reviewed' && <span className="b bt" title="El jefe de equipo la recomienda">✓ Jefe</span>}
                       <button className="btn-teal" onClick={() => updateEmpRequest(req.id, { status: 'approved' })}>✓ Aprobar</button>
                       <button className="btn-danger" onClick={() => updateEmpRequest(req.id, { status: 'rejected' })}>✗ Rechazar</button>
                     </div>

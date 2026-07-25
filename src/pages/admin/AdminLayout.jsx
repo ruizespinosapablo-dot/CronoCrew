@@ -9,6 +9,7 @@ import Permissions from './Permissions';
 import Reports from './Reports';
 import Audit from './Audit';
 import ExpressFilings from './ExpressFilings';
+import Roles from './Roles';
 
 const PAGES = [
   { id: 'dash', label: 'Panel',       icon: 'ti-layout-dashboard' },
@@ -16,6 +17,7 @@ const PAGES = [
   { id: 'reg',  label: 'Registro',    icon: 'ti-clock', badge: true },
   { id: 'req',  label: 'Solicitudes', icon: 'ti-inbox', badge: true },
   { id: 'perm', label: 'Permisos',    icon: 'ti-calendar-off' },
+  { id: 'roles', label: 'Roles',      icon: 'ti-user-shield' },
   { id: 'rep',  label: 'Informes',    icon: 'ti-chart-bar' },
   { id: 'aud',  label: 'Auditoría',   icon: 'ti-shield-check' },
   { id: 'exp',  label: 'Express',     icon: 'ti-bolt', badge: true },
@@ -26,8 +28,8 @@ export default function AdminLayout() {
   const isSuperAdmin = currentUser?.role === 'super_admin';
   const [page, setPage] = useState('reg');
   const badgeCount = {
-    reg: recs.filter(r => r.status === 'pending').length,
-    req: empRequests.filter(r => r.status === 'pending').length,
+    reg: recs.filter(r => r.status === 'pending' || r.status === 'reviewed').length,
+    req: empRequests.filter(r => r.status === 'pending' || r.status === 'reviewed').length,
     exp: expressLinks?.filter(l => l.status === 'filed').length ?? 0,
   };
 
@@ -84,6 +86,7 @@ export default function AdminLayout() {
           {page === 'reg'  && <Records />}
           {page === 'req'  && <Requests />}
           {page === 'perm' && <Permissions />}
+          {page === 'roles' && <Roles />}
           {page === 'rep'  && <Reports />}
           {page === 'aud'  && <Audit />}
           {page === 'exp'  && <ExpressFilings />}

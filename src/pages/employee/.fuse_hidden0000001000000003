@@ -119,7 +119,7 @@ export default function History({ emp }) {
                       {!lib && c && c.comp > 0 && <span style={{ color: 'var(--coral)', fontWeight: 600 }}>−{fmt(c.comp)}</span>}
                       {!lib && c && c.accum === 0 && c.comp === 0 && <span style={{ color: 'var(--text3)' }}>0</span>}
                     </td>
-                    <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : rec.status === 'reviewed' ? <span className="b bt">✓ Revisado (jefe)</span> : rec.status === 'draft' ? <span className="b" style={{ background: 'var(--bg4)', color: 'var(--text2)' }}>📝 Borrador</span> : <span className="b by">Pendiente</span>}</td>
+                    <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : rec.status === 'draft' ? <span className="b" style={{ background: 'var(--bg4)', color: 'var(--text2)' }}>📝 Borrador</span> : <span className="b by">Pendiente</span>}</td>
                     <td>{<button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
                   </tr>
                 );
@@ -220,7 +220,7 @@ export default function History({ emp }) {
                     <td style={{ fontWeight: 700 }}>{lib ? '📅 Libranza' : (rec.exit ? fmt(c.net) : '—')}</td>
                     <td style={{ color: 'var(--text2)' }}>{lib ? '—' : (rec.exit ? fmt(c.citedNet) : '—')}</td>
                     <td>{saldoEl}</td>
-                    <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : rec.status === 'reviewed' ? <span className="b bt">✓ Revisado (jefe)</span> : rec.status === 'draft' ? <span className="b" style={{ background: 'var(--bg4)', color: 'var(--text2)' }}>📝 Borrador</span> : <span className="b by">Pendiente</span>}</td>
+                    <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : rec.status === 'draft' ? <span className="b" style={{ background: 'var(--bg4)', color: 'var(--text2)' }}>📝 Borrador</span> : <span className="b by">Pendiente</span>}</td>
                     <td style={{ color: 'var(--text2)', fontSize: 12 }}>{rec.obs || '—'}</td>
                     <td>{<button className="btn-sm" onClick={() => setEditDay(ds)}>Editar</button>}</td>
                   </tr>

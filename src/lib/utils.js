@@ -56,3 +56,18 @@ export function moveItem(arr, from, to) {
   next.splice(to, 0, it);
   return next;
 }
+
+// Estado de un fichaje en el flujo de dos pasos:
+//   pendiente → revisado (visto bueno del jefe) → aprobado (firma del admin).
+export const REC_STATUS_LABEL = {
+  draft: '📝 Borrador',
+  pending: 'Pendiente',
+  reviewed: '✓ Revisado (jefe)',
+  approved: 'Aprobado',
+};
+export const REC_STATUS_CLS = {
+  draft: 'bx',
+  pending: 'by',
+  reviewed: 'bt',
+  approved: 'bg',
+};

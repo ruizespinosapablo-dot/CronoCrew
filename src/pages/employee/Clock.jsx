@@ -390,6 +390,8 @@ export default function Clock({ emp }) {
             <div style={{ background: rec.status === 'approved' ? 'rgba(51,214,192,0.08)' : 'rgba(201,242,62,0.08)', border: `1px solid ${rec.status === 'approved' ? 'var(--teal)' : 'var(--accent)'}`, borderRadius: 'var(--r)', padding: '.7rem 1rem', marginBottom: '.85rem', fontSize: 13, color: rec.status === 'approved' ? 'var(--teal)' : 'var(--accent)', fontWeight: 600 }}>
               {rec.status === 'approved'
                 ? '✓ Fichaje aprobado por administración.'
+                : rec.status === 'reviewed'
+                ? '✓ Tu jefe de equipo le ha dado el visto bueno · pendiente de la firma de administración. Para corregir algo, edítalo desde tu Historial.'
                 : '✓ Fichaje confirmado · pendiente de revisión. Para corregir algo, edítalo desde tu Historial.'}
             </div>
           )}
@@ -526,6 +528,7 @@ export default function Clock({ emp }) {
           {rec && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               {!rec.absence && rec.status === 'approved' && <span className="b bg">Aprobado</span>}
+              {!rec.absence && rec.status === 'reviewed' && <span className="b bt">✓ Revisado (jefe)</span>}
               {!rec.absence && rec.status === 'pending' && <span className="b by">Pendiente</span>}
               {!rec.absence && rec.status === 'draft' && <span className="b" style={{ background: 'var(--bg4)', color: 'var(--text2)' }}>📝 Borrador</span>}
               {rec.special && <span className="b ba">⭐ Jornada especial</span>}

@@ -83,9 +83,10 @@ export default function Records() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // Pendientes en TODO el conjunto filtrado (no solo la página visible): así,
-  // filtrando por departamento se puede aprobar el departamento entero de una vez.
-  const pendientes = filtered.filter(r => r.status === 'pending');
+  // Todo lo que aún NO está aprobado por el admin (pendiente o revisado por el
+  // jefe) en el conjunto filtrado. Así, filtrando por departamento se aprueba
+  // el departamento entero de una vez.
+  const pendientes = filtered.filter(r => r.status === 'pending' || r.status === 'reviewed');
 
   const aprobarFiltrados = () => {
     if (!pendientes.length) return;
@@ -144,6 +145,7 @@ export default function Records() {
         <select value={filterStatus} onChange={e => handleFilter(() => setFilterStatus(e.target.value))}>
           <option value="">Todos estados</option>
           <option value="pending">Pendiente</option>
+          <option value="reviewed">Revisado por jefe</option>
           <option value="approved">Aprobado</option>
         </select>
         <input type="date" value={filterDateFrom} onChange={e => handleFilter(() => setFilterDateFrom(e.target.value))} title="Desde" />
@@ -234,7 +236,11 @@ export default function Records() {
                     {workedOnFestivo && <span className="b by" style={{ fontSize: 10 }}>🟡 Festivo</span>}
                     {rv && <span className="b bc" style={{ fontSize: 10 }} title={`Descanso insuficiente: ${rv.gapH.toFixed(1)}h desde la salida del ${fmtDate(rv.prevDate)} (mínimo ${rv.reqH}h ${rv.weekend ? 'semanal' : 'entre jornadas'})`}>⛔ {rv.gapH.toFixed(1)}h descanso</span>}
                   </td>
-                  <td>{rec.status === 'approved' ? <span className="b bg">Aprobado</span> : <span className="b by">Pendiente</span>}</td>
+                  <td>{
+                    rec.status === 'approved' ? <span className="b bg">Aprobado</span>
+                    : rec.status === 'reviewed' ? <span className="b bt" title="El jefe de equipo le ha dado el visto bueno">✓ Revisado (jefe)</span>
+                    : <span className="b by">Pendiente</span>
+                  }</td>
                   <td style={{ color: 'var(--text2)', fontSize: 12, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.obs || '—'}</td>
                   <td style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     {rec.status !== 'approved' && (

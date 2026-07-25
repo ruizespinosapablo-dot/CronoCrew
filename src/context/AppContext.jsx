@@ -309,7 +309,8 @@ export function AppProvider({ children }) {
         username: session.user.email,
         displayName: profile?.name || session.user.email.split('@')[0],
         role: profile?.role === 'super_admin' ? 'super_admin'
-            : profile?.role === 'admin' ? 'admin' : 'user',
+            : profile?.role === 'admin' ? 'admin'
+            : profile?.role === 'dept_head' ? 'dept_head' : 'user',
         eid: profile?.eid || null,
         productionId: profile?.production_id || null,
         companyId: profile?.company_id || null,
