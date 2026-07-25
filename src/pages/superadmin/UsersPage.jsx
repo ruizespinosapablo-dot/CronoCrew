@@ -27,6 +27,12 @@ export default function UsersPage() {
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
 
+  // Filtros de la lista
+  const [fCompany, setFCompany] = useState('');
+  const [fProd, setFProd]       = useState('');
+  const [fRole, setFRole]       = useState('');
+  const [fSearch, setFSearch]   = useState('');
+
   const openEdit = (u) => {
     setEditForm({
       name: u.name || '',
@@ -91,6 +97,15 @@ export default function UsersPage() {
   const filteredProds     = (companyId) =>
     companyId ? productions.filter(p => p.company_id === companyId) : productions;
 
+  // Lista filtrada por productora, producción, rol y búsqueda de nombre.
+  const term = fSearch.trim().toLowerCase();
+  const visibles = users.filter(u =>
+    (!fCompany || u.company_id === fCompany) &&
+    (!fProd || u.production_id === fProd) &&
+    (!fRole || u.role === fRole) &&
+    (!term || (u.name || '').toLowerCase().includes(term))
+  );
+
   return (
     <div className="page-content">
       <div className="page-header">
@@ -98,6 +113,30 @@ export default function UsersPage() {
         <button className="btn-primary" onClick={() => { setForm(EMPTY_NEW); setError(''); setShowNew(true); }}>
           + Añadir usuario
         </button>
+      </div>
+
+      <div className="fb" style={{ marginBottom: '1rem' }}>
+        <select value={fCompany} onChange={e => { setFCompany(e.target.value); setFProd(''); }}>
+          <option value="">Todas las productoras</option>
+          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <select value={fProd} onChange={e => setFProd(e.target.value)}>
+          <option value="">Todas las producciones</option>
+          {filteredProds(fCompany).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <select value={fRole} onChange={e => setFRole(e.target.value)}>
+          <option value="">Todos los roles</option>
+          {ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+        </select>
+        <input type="text" value={fSearch} onChange={e => setFSearch(e.target.value)}
+          placeholder="Buscar por nombre…"
+          style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 13, minWidth: 180, outline: 'none' }} />
+        {(fCompany || fProd || fRole || fSearch) && (
+          <button className="btn-sm" onClick={() => { setFCompany(''); setFProd(''); setFRole(''); setFSearch(''); }}>Limpiar</button>
+        )}
+        <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto', alignSelf: 'center' }}>
+          {visibles.length} de {users.length}
+        </span>
       </div>
 
       <div className="card" style={{ overflow: 'auto' }}>
@@ -108,7 +147,7 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody>
-            {users.map(u => (
+            {visibles.map(u => (
               <tr key={u.id}>
                 <td>
                   <strong>{u.name || '—'}</strong>
@@ -129,8 +168,10 @@ export default function UsersPage() {
                 </td>
               </tr>
             ))}
-            {users.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text3)' }}>Sin usuarios</td></tr>
+            {visibles.length === 0 && (
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text3)' }}>
+                {users.length ? 'Nadie coincide con los filtros.' : 'Sin usuarios'}
+              </td></tr>
             )}
           </tbody>
         </table>
