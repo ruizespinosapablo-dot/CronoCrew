@@ -90,14 +90,16 @@ export default function Records() {
         <button className="btn-accent" onClick={() => {
           const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
           const rows = [
-            ['Empleado', 'Departamento', 'Fecha', 'Entrada', 'Salida', 'Descanso (min)', 'Netas', 'Total día', 'Estado', 'Obs.'].map(escape).join(','),
+            ['Empleado', 'Departamento', 'Fecha', 'Entrada', 'Salida', 'Descanso (min)', 'Netas', 'Citadas', 'Total día', 'Estado', 'Obs.'].map(escape).join(','),
             ...filtered.map(r => {
               const emp = emps.find(e => e.id === r.eid);
               const c = (r.entry && r.exit) ? calcRecForEmp(r, emp) : null;
               return [
                 emp?.name ?? r.eid, emp?.dept ?? '', r.date,
                 r.entry || '', r.exit || '', r.brk ?? '',
-                c ? Math.round(c.net) : '', c ? Math.round(c.total) : '',
+                c ? Math.round(c.net) : '',
+                c && emp?.dept !== 'Actores' ? Math.round(c.citedNet) : '',
+                c ? Math.round(c.total) : '',
                 r.status === 'approved' ? 'Aprobado' : 'Pendiente',
                 r.obs || '',
               ].map(escape).join(',');
@@ -142,7 +144,7 @@ export default function Records() {
           <thead>
             <tr>
               <th>Empleado</th><th>Depto.</th><th>Fecha</th>
-              <th>Entrada</th><th>Salida</th><th>Descanso</th><th>Netas</th><th>TOTAL día</th><th>Estado</th><th>Obs.</th><th></th>
+              <th>Entrada</th><th>Salida</th><th>Descanso</th><th>Netas</th><th>Citadas</th><th>TOTAL día</th><th>Estado</th><th>Obs.</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -161,7 +163,7 @@ export default function Records() {
                     <td style={{ fontSize: 12 }}>{emp.alias || emp.name}</td>
                     <td style={{ fontSize: 11, color: 'var(--text3)' }}>{emp.dept}</td>
                     <td style={{ fontSize: 12, color: 'var(--text2)' }}>{fmtDate(rec.date)}</td>
-                    <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text3)', fontStyle: 'italic' }}>{absLabels[rec.absence] || rec.absence}</td>
+                    <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text3)', fontStyle: 'italic' }}>{absLabels[rec.absence] || rec.absence}</td>
                     <td><span className="b bg">Aprobado</span></td>
                     <td style={{ color: 'var(--text2)', fontSize: 12 }}>{rec.obs || '—'}</td>
                     <td></td>
@@ -185,6 +187,9 @@ export default function Records() {
                   <td style={{ fontSize: 12, color: 'var(--text2)' }}>{rec.exit ? fmt(rec.brk != null ? rec.brk : emp.brk) : '—'}</td>
                   <td style={{ fontWeight: 700 }}>
                     {rec.libranza ? '—' : c ? fmt(c.net) : '—'}
+                  </td>
+                  <td style={{ color: 'var(--text2)' }}>
+                    {rec.libranza ? '—' : (c && !isActorRec ? fmt(c.citedNet) : '—')}
                   </td>
                   <td>
                     {!rec.libranza && totalNet != null && <span style={{ color: totalNet > 0 ? 'var(--coral)' : 'var(--teal)' }}>{fmt(totalNet)}</span>}
